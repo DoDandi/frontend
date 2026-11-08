@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+body {
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+  overscroll-behavior: none;
+}
+
+/* 열기 마커: 뜨거움 2초 맥박, 대프리카 0.8초 맥박 + 바깥 번짐 */
+@keyframes heat-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@keyframes heat-glow {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--glow) 70%, transparent); }
+  100% { box-shadow: 0 0 0 22px transparent; }
+}
+.heat-pulse-slow { animation: heat-pulse 2s ease-in-out infinite; }
+.heat-pulse-fast { animation: heat-pulse 0.8s ease-in-out infinite; }
+.heat-glow.heat-pulse-fast { animation: heat-pulse 0.8s ease-in-out infinite, heat-glow 0.8s ease-out infinite; }
+
+/* 대프리카 모드: 전체 화면 붉은 그라데이션 */
+@keyframes daefrica-bg {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+@keyframes daefrica-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4px, 2px); }
+  50% { transform: translate(4px, -2px); }
+  75% { transform: translate(-2px, -3px); }
+}
+.daefrica-mode {
+  background: radial-gradient(circle at 50% 40%, #fca5a5 0%, #ef4444 35%, #7f1d1d 100%);
+  animation: daefrica-bg 0.8s ease-in-out infinite;
+}
+.daefrica-shake { animation: daefrica-shake 0.15s linear 8; }
