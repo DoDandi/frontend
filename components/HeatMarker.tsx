@@ -7,14 +7,14 @@ import maplibregl from 'maplibre-gl';
 import { useBaseMap } from './BaseMap';
 
 /**
- * 단계별 색 (피그마 A안).
+ * 단계별 색 (피그마 SCREEN 01 구역 원 색: 따뜻 #F08A42, 폭염 #E64B3B, 대프리카는 브랜드 #B7392D).
  * color: 기본색, text: 진한 글자색, soft: 칩 배경, onColor: 기본색 위 글자색, dot: 알약 마커 안 원 지름
  */
 export const BAND_STYLE: Record<Band, { color: string; text: string; soft: string; onColor: string; dot: number; className: string }> = {
   mild: { color: '#94A3B8', text: '#334155', soft: '#F1F5F9', onColor: '#0F172A', dot: 24, className: '' },
-  warm: { color: '#FB923C', text: '#9A3412', soft: '#FFEDD5', onColor: '#431407', dot: 30, className: '' },
-  hot: { color: '#EF4444', text: '#991B1B', soft: '#FEE2E2', onColor: '#FFFFFF', dot: 34, className: 'heat-pulse-slow' },
-  daefrica: { color: '#B91C1C', text: '#7F1D1D', soft: '#FECACA', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
+  warm: { color: '#F08A42', text: '#9A3412', soft: '#FDEBDD', onColor: '#431407', dot: 30, className: '' },
+  hot: { color: '#E64B3B', text: '#991B1B', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 34, className: 'heat-pulse-slow' },
+  daefrica: { color: '#B7392D', text: '#7F1D1D', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
 };
 
 /** 지도 위 좌표에 React 요소를 띄우는 마커 */

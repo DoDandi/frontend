@@ -21,14 +21,22 @@ export type ZoneItem = {
 
 export type ZonePlace = { id: string; zoneId: string | null; name: string; category: Category; temp: number; band: Band };
 
-/** 온도 → 구역 원 지름(px). 10°에 50px, 50°에 138px (피그마: 뜨거울수록 큰 원). 구역 15곳이 겹치지 않게 작게 시작한다 */
-const zoneSize = (temp: number) => Math.round(50 + (Math.min(Math.max(temp, 10), 50) - 10) * 2.2);
+/**
+ * 피그마 SCREEN 01 구역 원: 뜨거울수록 크고 진하다.
+ * 피그마 예시(96·115·160px, 채움 0.48·0.62·0.74, 테두리는 채움의 0.7배)를 도 단위(27·36·44°)에 맞춰 이었다.
+ */
+const clampT = (t: number) => Math.min(Math.max(t, 10), 50);
+const zoneSize = (t: number) => Math.round(Math.max(64, 96 + (clampT(t) - 27) * 3.76));
+const zoneFill = (t: number) => Math.min(0.8, Math.max(0.4, 0.48 + (clampT(t) - 27) * 0.0153));
+const alpha = (o: number) => Math.round(o * 255).toString(16).padStart(2, '0');
 
-/** 구역: 온도에 따라 커지는 반투명 원 + 가운데 큰 온도·구역명 */
+/** 구역: 온도에 따라 커지고 진해지는 원 + 가운데 큰 온도·구역명 */
 export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => void }) {
   const map = useBaseMap();
   const s = BAND_STYLE[zone.band];
   const d = zoneSize(zone.temp);
+  const fill = zoneFill(zone.temp);
+  const big = d >= 140;
 
   // 누르면 구역으로 확대해 안의 장소 마커가 보이게 한다
   const handleClick = () => {
@@ -45,17 +53,15 @@ export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => v
         type="button"
         onClick={handleClick}
         aria-label={`${zone.name} ${Math.round(zone.temp)}도`}
-        className={`flex flex-col items-center justify-center rounded-full leading-none transition-all duration-500 ${
+        className={`flex flex-col items-center justify-center rounded-full text-[#282522] transition-all duration-500 ${
           zone.band === 'daefrica' ? 'heat-pulse-fast' : zone.band === 'hot' ? 'heat-pulse-slow' : ''
         }`}
-        style={{ width: d, height: d, backgroundColor: `${s.color}B3`, border: `1.5px solid ${s.color}` }}
+        style={{ width: d, height: d, backgroundColor: `${s.color}${alpha(fill)}`, border: `1.5px solid ${s.color}${alpha(fill * 0.7)}` }}
       >
-        <span className="font-extrabold tabular-nums text-[#2B211F]" style={{ fontSize: Math.max(17, Math.round(d / 4)) }}>
+        <span className="font-bold tabular-nums" style={{ fontSize: Math.round(0.16 * d + 9.5), lineHeight: 1.45 }}>
           {Math.round(zone.temp)}°
         </span>
-        <span className="mt-1 whitespace-nowrap font-bold text-[#2B211F]" style={{ fontSize: d >= 110 ? 14 : 11 }}>
-          {zone.name}
-        </span>
+        <span className={`whitespace-nowrap ${big ? 'text-[13px] font-bold leading-[19px]' : 'text-[11px] font-medium leading-4'}`}>{zone.name}</span>
       </button>
     </MapOverlay>
   );

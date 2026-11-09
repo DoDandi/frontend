@@ -2,14 +2,14 @@
 
 import type { ReactNode } from 'react';
 
-/** 지도 아래에 붙는 하단 시트 (피그마 바텀시트 모양) */
+/** 지도 아래에 붙는 하단 시트 (피그마 바텀시트 모양). 페이지가 화면 아래 묶음 안에 넣는다 */
 export default function Sheet({ onClose, maxH = '70vh', children }: { onClose?: () => void; maxH?: string; children: ReactNode }) {
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-4 pt-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
+      className="pointer-events-auto relative w-full overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-4 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       style={{ maxHeight: maxH }}
     >
-      <div className="mx-auto mb-2 h-1 w-11 rounded-full bg-[#E5E0DA]" />
+      <div className="mx-auto mb-2 h-1 w-11 rounded-full bg-[#E9E2DA]" />
       {onClose && (
         <button type="button" onClick={onClose} className="absolute right-3 top-2 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
           ×

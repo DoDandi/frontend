@@ -6,7 +6,7 @@ const ORDER: Band[] = ['mild', 'warm', 'hot', 'daefrica'];
 /** 지도 위 범례: 서늘 · 따뜻 · 폭염 · 대프리카 */
 export default function BandLegend() {
   return (
-    <div className="flex items-center gap-2 rounded-2xl bg-white/95 px-2.5 py-1.5 text-[10px] text-gray-700 shadow-[0_1px_4px_rgba(0,0,0,0.12)]">
+    <div className="flex h-8 items-center gap-2.5 rounded-2xl bg-white px-3 text-[11px] font-medium text-[#766F69]">
       {ORDER.map(b => (
         <span key={b} className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BAND_STYLE[b].color }} />

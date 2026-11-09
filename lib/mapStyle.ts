@@ -2,6 +2,7 @@ import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl';
 
 /**
  * 단순화한 실제 지도 스타일 (11/9 결정: 카카오맵 대신 MapLibre + OpenFreeMap).
+ * 색은 피그마 SCREEN 01 지도 영역(바탕 #EEF0E9, 길 흰색, 공원 #E0E7DC, 지역 이름 #8A9589)을 따른다.
  * 큰길·지하철·물·공원·큰 동네 이름만 남기고, 확대하면 골목길만 연하게 더한다. 건물·가게 이름은 그리지 않는다.
  * 지하철 노선·역은 OpenStreetMap에서 뽑아 public/map/*.geojson 으로 둔다 (노선별 색을 쓰기 위해).
  */
@@ -20,14 +21,14 @@ export const MAP_STYLE: StyleSpecification = {
     subwayStations: { type: 'geojson', data: '/map/subway-stations.geojson' },
   },
   layers: [
-    { id: 'bg', type: 'background', paint: { 'background-color': '#EDF1EE' } },
-    { id: 'park', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': '#CFE5C3' } },
+    { id: 'bg', type: 'background', paint: { 'background-color': '#EEF0E9' } },
+    { id: 'park', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': '#E0E7DC' } },
     {
       id: 'green', type: 'fill', source: 'omt', 'source-layer': 'landcover',
       filter: ['in', ['get', 'class'], ['literal', ['grass', 'wood']]],
-      paint: { 'fill-color': '#D8EBCD' },
+      paint: { 'fill-color': '#E0E7DC' },
     },
-    { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#BFDCEF' } },
+    { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#E7ECE9' } },
     {
       id: 'minor', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 15,
       filter: ['in', ['get', 'class'], ['literal', ['tertiary', 'minor', 'service']]],
@@ -47,14 +48,14 @@ export const MAP_STYLE: StyleSpecification = {
       id: 'road-case', type: 'line', source: 'omt', 'source-layer': 'transportation',
       filter: ['in', ['get', 'class'], ['literal', MAJOR]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#CDD5D0', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 14, 6, 17, 16] },
+      paint: { 'line-color': '#E2E5DC', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 14, 6, 17, 16] },
     },
     {
       id: 'road', type: 'line', source: 'omt', 'source-layer': 'transportation',
       filter: ['in', ['get', 'class'], ['literal', MAJOR]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ['match', ['get', 'class'], ['motorway', 'trunk'], '#FFFDF6', '#FFFFFF'],
+        'line-color': '#FFFFFF',
         'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 14, 4, 17, 13],
       },
     },
@@ -78,13 +79,13 @@ export const MAP_STYLE: StyleSpecification = {
       id: 'water-name', type: 'symbol', source: 'omt', 'source-layer': 'waterway',
       filter: ['==', ['get', 'class'], 'river'],
       layout: { 'symbol-placement': 'line', 'text-field': NAME, 'text-font': FONT, 'text-size': 11 },
-      paint: { 'text-color': '#4A86B0', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.2 },
+      paint: { 'text-color': '#8A9589', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.2 },
     },
     {
       id: 'quarter', type: 'symbol', source: 'omt', 'source-layer': 'place', maxzoom: 15,
       filter: ['in', ['get', 'class'], ['literal', ['suburb', 'quarter']]],
-      layout: { 'text-field': NAME, 'text-font': FONT, 'text-size': 11 },
-      paint: { 'text-color': '#9AA39F', 'text-halo-color': '#EDF1EE', 'text-halo-width': 1.5 },
+      layout: { 'text-field': NAME, 'text-font': FONT, 'text-size': 12 },
+      paint: { 'text-color': '#8A9589', 'text-halo-color': '#EEF0E9', 'text-halo-width': 1.5 },
     },
     {
       id: 'landmark', type: 'symbol', source: 'omt', 'source-layer': 'poi',
