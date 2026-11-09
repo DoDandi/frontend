@@ -61,7 +61,8 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
   }, []);
 
   return (
-    <div className={`relative ${className ?? ''}`}>
+    // isolate: 마커 z-index가 지도 밖(하단 시트 위)으로 새지 않게
+    <div className={`relative isolate ${className ?? ''}`}>
       {/* maplibre CSS가 컨테이너를 position: relative로 바꾸므로 absolute 대신 크기를 직접 준다 */}
       <div ref={ref} className="h-full w-full" />
       {error && (

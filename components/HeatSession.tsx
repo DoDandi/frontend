@@ -40,6 +40,9 @@ export default function HeatSession({
   onChoose,
   onToast,
   onSent,
+  onOffSite,
+  suggest,
+  onSuggest,
 }: {
   site: SiteState;
   fixRef: RefObject<Fix | null>;
@@ -47,6 +50,11 @@ export default function HeatSession({
   onToast: (msg: string) => void;
   /** 성공하면 결과를 넘긴다. 결과 시트(SCREEN 13)·대프리카(14)는 페이지가 그린다 */
   onSent: (result: HeatApiResult, placeId: string) => void;
+  /** 현장 밖에서 누르면 반경 밖 안내(SCREEN 20)를 연다 */
+  onOffSite: () => void;
+  /** 쿨다운 중에 추천할 다른 장소 (SCREEN 19) */
+  suggest: { id: string; name: string; temp: number } | null;
+  onSuggest: (placeId: string) => void;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [taps, setTaps] = useState(0);
@@ -55,6 +63,7 @@ export default function HeatSession({
   const [ringKey, setRingKey] = useState(0);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => Date.now());
+  const [cooldownCard, setCooldownCard] = useState(false);
 
   const tapsRef = useRef(0);
   const sessionPlace = useRef<{ id: string; name: string } | null>(null);
@@ -141,6 +150,16 @@ export default function HeatSession({
     }
   }, [fixRef, onSent, setCooldown]);
 
+  // 쿨다운 안내 카드는 잠시 보여 주고 닫는다
+  useEffect(() => {
+    if (!cooldownCard) return;
+    const t = setTimeout(() => setCooldownCard(false), 6000);
+    return () => clearTimeout(t);
+  }, [cooldownCard]);
+  useEffect(() => {
+    if (cooldownLeft <= 0) setCooldownCard(false);
+  }, [cooldownLeft]);
+
   // 10초 타이머. 위치가 바뀌어 다시 그려져도 타이머가 처음부터 다시 시작되지 않도록 send는 ref로 부른다
   const sendRef = useRef(send);
   useEffect(() => {
@@ -191,6 +210,10 @@ export default function HeatSession({
       return;
     }
     if (phase.kind === 'sending') return;
+    if (site.status === 'off-site') {
+      onOffSite();
+      return;
+    }
     if (site.status !== 'ok') {
       onToast(
         site.status === 'no-location'
@@ -204,8 +227,7 @@ export default function HeatSession({
       return;
     }
     if (cooldownLeft > 0) {
-      const sec = Math.ceil(cooldownLeft / 1000);
-      onToast(`${Math.floor(sec / 60)}분 ${sec % 60}초 뒤에 다시 올릴 수 있어요`);
+      setCooldownCard(true);
       return;
     }
     // 첫 터치: 10초 시작
@@ -267,6 +289,27 @@ export default function HeatSession({
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">
                 {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요! 흔들어도 올라가요' : '반응을 누르면 불꽃이 올라가요!'}
               </p>
+            </div>
+          )}
+          {cooldownCard && place && cooldownLeft > 0 && (
+            <div className="pointer-events-auto w-[260px] max-w-full rounded-[15px] border border-[#E9E2DA] bg-white px-4 pb-3 pt-3" aria-live="polite">
+              <p className="text-[15px] font-bold text-[#282522]">⏳ 잠시 쉬어 가요</p>
+              <p className="mt-1.5 text-[11px] leading-4 text-[#766F69]">
+                {place.name}에는 방금 열기를 올렸어요.
+                <br />
+                같은 장소는 {COOLDOWN_MIN}분 후 다시 올릴 수 있어요.
+              </p>
+              <p className="mt-2 text-[30px] font-bold leading-9 tabular-nums text-[#D94B35]">
+                {fmtLeft(cooldownLeft).padStart(5, '0')} <span className="text-xs font-medium text-[#766F69]">남음</span>
+              </p>
+              <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-[#F6F4F1]">
+                <span className="block h-full rounded-full bg-[#D94B35]" style={{ width: `${(1 - cooldownLeft / (COOLDOWN_MIN * 60_000)) * 100}%` }} />
+              </span>
+              {suggest && (
+                <button type="button" onClick={() => onSuggest(suggest.id)} className="mt-2.5 text-left text-[11px] font-medium text-[#B7392D]">
+                  그동안 다른 곳은 어때요? {suggest.name} {Math.round(suggest.temp)}° ›
+                </button>
+              )}
             </div>
           )}
           {phase.kind === 'error' && (
