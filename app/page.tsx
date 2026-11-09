@@ -69,6 +69,7 @@ export default function Home() {
   // 열기 올리기 결과 (SCREEN 13 결과 시트, 40° 이상이면 SCREEN 14 대프리카 먼저)
   const [outcome, setOutcome] = useState<HeatOutcome | null>(null);
   const [showDaefrica, setShowDaefrica] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
   // 현장 인증을 위해 위치와 오차를 계속 받는다 (권한이 없으면 null → 비활성)
   useEffect(() => {
@@ -164,6 +165,7 @@ export default function Home() {
           onChange={g => {
             setGroup(g);
             setZoneId(null);
+            setListOpen(false); // 필터가 바뀌면 목록 시트가 새로 접힌 채로 열린다
           }}
         />
       </header>
@@ -231,7 +233,7 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
-          {!selected && !course && !outcome && (
+          {!selected && !course && !outcome && !listOpen && !zone && (
             <HeatSession
               site={site}
               fixRef={fixRef}
@@ -307,9 +309,16 @@ export default function Home() {
             <PlaceListSheet
               key={group ?? 'all'}
               title={group ? `${GROUP_LABEL[group]} 장소` : '주변 장소'}
-              badge={{ label: `${visiblePlaces.length}곳`, bg: '#FFEDD5', fg: '#9A3412' }}
+              badge={{ label: `${group ? GROUP_LABEL[group] + ' ' : ''}${visiblePlaces.length}곳`, bg: '#FCE8E1', fg: '#B7392D' }}
+              description={group ? `지도에 표시된 ${GROUP_LABEL[group]} 관련 장소` : '지도에 표시된 장소'}
+              origin={fix}
+              zoneName={id => zones?.find(z => z.id === id)?.name ?? null}
               places={visiblePlaces}
-              onSelectPlace={setSelected}
+              onOpenChange={setListOpen}
+              onSelectPlace={id => {
+                setListOpen(false);
+                setSelected(id);
+              }}
             />
           )
         )}
