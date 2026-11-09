@@ -16,6 +16,10 @@ export type ZoneItem = {
   radiusM: number;
   temp: number;
   band: Band;
+  /** 평소(20°) 대비 몇 도 */
+  vsBaseline?: number;
+  /** 최근 30분 참여 기기 수 */
+  peers30m?: number;
   placeCount: number;
 };
 

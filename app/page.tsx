@@ -32,6 +32,9 @@ import { BAND_LABEL, type Band } from '@/lib/temperature';
 type PlaceItem = ZonePlace & { lat: number; lng: number };
 
 // 구역 미리보기 한 줄 설명 (평소값 20° 기준). 백엔드가 vsBaseline을 주면 숫자로 바꾼다
+/** V2-01 문구: "평소보다 22° 높아요" */
+const vsText = (v: number) => (Math.round(v) === 0 ? '평소 수준이에요' : `평소보다 ${Math.abs(Math.round(v))}° ${v > 0 ? '높아요' : '낮아요'}`);
+
 const BAND_DESC: Record<Band, string> = {
   mild: '평소보다 조용해요',
   warm: '평소만큼 활기 있어요',
@@ -282,7 +285,8 @@ export default function Home() {
                 <div className="flex h-8 items-center justify-between">
                   <span className="text-[17px] font-bold leading-[25px] text-[#282522]">지금 뜨거운 곳</span>
                   <span className="flex h-8 min-w-[76px] items-center justify-center rounded-2xl bg-[#FCE8E1] px-2 text-[11px] font-medium leading-4 text-[#B7392D]">
-                    {hottestZone.band === 'hot' || hottestZone.band === 'daefrica' ? '🔥 HOT' : BAND_LABEL[hottestZone.band]}
+                    {hottestZone.band === 'hot' || hottestZone.band === 'daefrica' ? '🔥 ' : ''}
+                    {BAND_LABEL[hottestZone.band]}
                   </span>
                 </div>
                 <div className="mt-[9px] flex h-6 items-center justify-between">
@@ -290,7 +294,9 @@ export default function Home() {
                   <span className="text-sm font-bold leading-5 tabular-nums text-[#B7392D]">열기 {Math.round(hottestZone.temp)}°</span>
                 </div>
                 <p className="mt-1.5 whitespace-pre text-xs leading-[17px] text-[#766F69]">
-                  {`${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
+                  {hottestZone.vsBaseline != null
+                    ? `${vsText(hottestZone.vsBaseline)}  ·  최근 30분 ${hottestZone.peers30m ?? 0}명 참여`
+                    : `${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
                 </p>
               </button>
               <p className="mt-[11px] border-t border-[#E9E2DA] pt-[11px] text-xs leading-[17px] text-[#766F69]">지도를 확대하면 매장별 열기를 볼 수 있어요</p>
