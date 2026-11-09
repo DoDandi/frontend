@@ -4,10 +4,8 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { CATEGORY_LABEL, POLL_MS, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
-import { formatKST } from '@/lib/time';
 import { BAND_STYLE } from './HeatMarker';
 import Sheet, { BandChip } from './Sheet';
-import TempChart, { type TimelinePoint } from './TempChart';
 
 export type PlaceDetail = {
   id: string;
@@ -38,9 +36,6 @@ type Props = { placeId: string; onClose: () => void; onCourseFromHere: (p: { lat
 
 export default function PlaceSheet({ placeId, onClose, onCourseFromHere }: Props) {
   const { data: p } = useSWR<PlaceDetail>(`/api/places/${placeId}`, fetcher, { refreshInterval: POLL_MS });
-  const { data: timeline } = useSWR<TimelinePoint[]>(`/api/places/${placeId}/timeline`, fetcher, {
-    refreshInterval: POLL_MS,
-  });
 
   if (!p) {
     return (
@@ -75,16 +70,6 @@ export default function PlaceSheet({ placeId, onClose, onCourseFromHere }: Props
         ) : (
           <Stat label="지금 참여" value={`${p.peersNow}명`} />
         )}
-      </div>
-
-      <div className="mt-4">
-        <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-sm font-extrabold text-gray-900">최근 6시간</span>
-          <span className="text-xs text-gray-600">
-            오늘 최고 {Math.round(p.todayPeak.temp)}° · {formatKST(p.todayPeak.at)}
-          </span>
-        </div>
-        {timeline ? <TempChart data={timeline} /> : <div className="h-40" />}
       </div>
 
       <div className="mt-3">
