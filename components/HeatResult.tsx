@@ -88,7 +88,7 @@ export function HeatResultSheet({
                   도보 {Math.max(1, Math.round(s.distanceM / WALK_M_PER_MIN))}분 · {s.distanceM}m
                 </span>
               </span>
-              <span className="shrink-0 rounded-[14px] px-2.5 py-[5px] text-[11px] font-bold text-[#282522]" style={{ backgroundColor: BAND_STYLE[sb].soft }}>
+              <span className="shrink-0 rounded-[14px] px-2.5 py-[5px] text-[11px] font-bold text-[#282522]" style={{ backgroundColor: BAND_STYLE[sb].color, color: BAND_STYLE[sb].onColor }}>
                 {sb === 'hot' || sb === 'daefrica' ? '🔥 ' : ''}
                 {Math.round(s.temp)}° {BAND_LABEL[sb]}
               </span>
