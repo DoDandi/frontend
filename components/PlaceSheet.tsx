@@ -32,9 +32,15 @@ export const fetcher = (url: string) =>
     return r.json();
   });
 
-type Props = { placeId: string; onClose: () => void; onCourseFromHere: (p: { lat: number; lng: number }) => void };
+type Props = {
+  placeId: string;
+  onClose: () => void;
+  onCourseFromHere: (p: { lat: number; lng: number }) => void;
+  /** 지도 위 불꽃 버튼으로 이 장소의 열기를 올린다 */
+  onHeat: (placeId: string) => void;
+};
 
-export default function PlaceSheet({ placeId, onClose, onCourseFromHere }: Props) {
+export default function PlaceSheet({ placeId, onClose, onCourseFromHere, onHeat }: Props) {
   const { data: p } = useSWR<PlaceDetail>(`/api/places/${placeId}`, fetcher, { refreshInterval: POLL_MS });
 
   if (!p) {
@@ -90,15 +96,16 @@ export default function PlaceSheet({ placeId, onClose, onCourseFromHere }: Props
         >
           다음 갈 곳
         </button>
-        <Link
-          href={`/heat/${p.id}`}
+        <button
+          type="button"
+          onClick={() => onHeat(p.id)}
           className="flex h-[50px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#C2410C] text-base font-extrabold text-white"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
             <path d="M12 3c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5" />
           </svg>
           열기 올리기
-        </Link>
+        </button>
       </div>
     </Sheet>
   );

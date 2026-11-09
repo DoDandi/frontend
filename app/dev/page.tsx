@@ -24,6 +24,7 @@ export default function DevPage() {
         deviceId: getDeviceId(),
         lat: p.lat + offsetM / 111_000, // 위도 1도 ≈ 111km
         lng: p.lng,
+        accuracy: 10, // 테스트용 위치 오차(m)
         taps: 40,
         shake: 1,
       }),

@@ -9,7 +9,6 @@ export const EVENT_BONUS = 5;
 export const TREND_BONUS = 3;
 
 // 어뷰징 방지 (5장·7장)
-export const HEAT_RADIUS_M = 150;
 export const COOLDOWN_MIN = 5;
 export const HOURLY_LIMIT = 20;
 export const PEERS_NOW_MIN = 5;
@@ -89,3 +88,17 @@ export const CATEGORY_GROUP: Record<Category, Group> = {
   cheer: 'sports',
   street: 'etc',
 };
+
+// 현장 인증 (11/10 결정, 백엔드 lib/constants.ts와 같은 값). 장소 종류별 반경 + GPS 오차 확인
+export const HEAT_RADIUS_BY_CATEGORY: Record<Category, number> = {
+  food: 30,
+  cafe: 30,
+  market: 80,
+  night_market: 80,
+  street: 80,
+  show: 150,
+  festival: 150,
+  cheer: 300,
+};
+// 폰이 알려 주는 위치 오차(m)가 이보다 크면 인증하지 않는다
+export const GPS_MAX_ACCURACY_M = 30;
