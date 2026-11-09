@@ -8,6 +8,7 @@ import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer
 import FilterChips from '@/components/FilterChips';
 import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
 import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession';
+import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/OutOfRange';
 import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
@@ -70,6 +71,7 @@ export default function Home() {
   const [outcome, setOutcome] = useState<HeatOutcome | null>(null);
   const [showDaefrica, setShowDaefrica] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+  const [offSite, setOffSite] = useState<OffSite | null>(null);
 
   // 현장 인증을 위해 위치와 오차를 계속 받는다 (권한이 없으면 null → 비활성)
   useEffect(() => {
@@ -119,6 +121,20 @@ export default function Home() {
     if (pick) return { status: 'ok', place: { id: pick.p.id, name: pick.p.name } };
     return { status: 'choose', candidates: candidates.map(c => ({ id: c.p.id, name: c.p.name, distanceM: c.site.distanceM })) };
   })();
+  // 반경 밖 안내 대상: 고른 장소, 없으면 가장 가까운 장소 (SCREEN 20)
+  const openOffSite = () => {
+    if (!fix || !places?.length) return;
+    const target =
+      places.find(p => p.id === (selected ?? chosenId)) ?? places.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), places[0]);
+    setOffSite({
+      place: { id: target.id, name: target.name, lat: target.lat, lng: target.lng },
+      radiusM: HEAT_RADIUS_BY_CATEGORY[target.category],
+      distanceM: Math.round(distanceM(fix, target)),
+    });
+  };
+  // 쿨다운 중 추천: 지금 인증된 곳을 뺀 가장 뜨거운 곳 (SCREEN 19)
+  const certifiedId = site.status === 'ok' ? site.place.id : null;
+  const suggest = places?.filter(p => p.id !== certifiedId).reduce<PlaceItem | null>((a, p) => (!a || p.temp > a.temp ? p : a), null) ?? null;
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
 
   const showCourse = useCallback(async (from?: LatLng) => {
@@ -208,6 +224,7 @@ export default function Home() {
               />
             ))}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
+          {offSite && fix && <OutOfRangeOverlay info={offSite} me={fix} />}
           {outcome && (
             <>
               {/* 오른 온도 말풍선 (SCREEN 13) */}
@@ -233,12 +250,15 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
-          {!selected && !course && !outcome && !listOpen && !zone && (
+          {!selected && !course && !outcome && !listOpen && !zone && !offSite && (
             <HeatSession
               site={site}
               fixRef={fixRef}
               onChoose={setChosenId}
               onToast={showToast}
+              onOffSite={openOffSite}
+              suggest={suggest && { id: suggest.id, name: suggest.name, temp: suggest.temp }}
+              onSuggest={id => setSelected(id)}
               onSent={(r, placeId) => {
                 refreshPlaces();
                 const p = places?.find(x => x.id === placeId);
@@ -248,7 +268,25 @@ export default function Home() {
               }}
             />
           )}
-        {outcome ? (
+        {offSite && !outcome ? (
+          <OutOfRangeSheet
+            info={offSite}
+            onClose={() => setOffSite(null)}
+            onRecheck={() =>
+              navigator.geolocation?.getCurrentPosition(
+                pos => {
+                  const f = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+                  fixRef.current = f;
+                  setFix(f);
+                  setOffSite(null);
+                  showToast('위치를 다시 확인했어요');
+                },
+                () => showToast('위치를 가져오지 못했어요. 위치 권한을 확인해 주세요'),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
+              )
+            }
+          />
+        ) : outcome ? (
           <HeatResultSheet
             outcome={outcome}
             course={outcomeCourse}
@@ -262,7 +300,6 @@ export default function Home() {
           <PlaceSheet
             placeId={selected}
             onClose={() => setSelected(null)}
-            onCourseFromHere={showCourse}
             onHeat={id => {
               // 시트를 닫고 지도 위 불꽃 버튼으로 그 장소의 열기를 올린다
               setChosenId(id);
