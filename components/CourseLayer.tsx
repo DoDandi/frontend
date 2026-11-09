@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useKakaoMap } from './KakaoMap';
+import maplibregl from 'maplibre-gl';
+import { OVERLAY_BEFORE } from '@/lib/mapStyle';
+import { useBaseMap } from './BaseMap';
 import { MapOverlay } from './HeatMarker';
+import Sheet from './Sheet';
 
 export type CourseStop = { id: string; name: string; lat: number; lng: number; temp: number; distanceM: number };
 export type Course = { stops: CourseStop[]; totalDistanceM: number };
@@ -11,25 +14,30 @@ const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}
 
 /** 지도 위 번호 마커와 연결선 */
 export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: number }; course: Course }) {
-  const ctx = useKakaoMap();
+  const map = useBaseMap();
 
   useEffect(() => {
-    if (!ctx || course.stops.length === 0) return;
-    const { kakao, map } = ctx;
-    const path = [origin, ...course.stops].map(p => new kakao.maps.LatLng(p.lat, p.lng));
-    const line = new kakao.maps.Polyline({
-      path,
-      strokeWeight: 5,
-      strokeColor: '#0F172A',
-      strokeOpacity: 0.8,
-      strokeStyle: 'shortdash',
-    });
-    line.setMap(map);
-    const bounds = new kakao.maps.LatLngBounds();
-    path.forEach(p => bounds.extend(p));
-    map.setBounds(bounds, 80, 40, 260, 40);
-    return () => line.setMap(null);
-  }, [ctx, origin, course]);
+    if (!map || course.stops.length === 0) return;
+    const coords = [origin, ...course.stops].map(p => [p.lng, p.lat] as [number, number]);
+    map.addSource('course', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } });
+    map.addLayer(
+      {
+        id: 'course',
+        type: 'line',
+        source: 'course',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#0F172A', 'line-width': 5, 'line-opacity': 0.8, 'line-dasharray': [1, 1.5] },
+      },
+      OVERLAY_BEFORE
+    );
+    const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
+    map.fitBounds(bounds, { padding: { top: 80, right: 40, bottom: 260, left: 40 }, maxZoom: 16 });
+    return () => {
+      if (!map.getStyle()) return;
+      map.removeLayer('course');
+      map.removeSource('course');
+    };
+  }, [map, origin, course]);
 
   return (
     <>
@@ -50,11 +58,8 @@ export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: 
 /** 하단 카드: 정류장 이름, 온도, 거리, 총 이동 거리 */
 export function CourseCard({ course, onClose }: { course: Course; onClose: () => void }) {
   return (
-    <div className="absolute inset-x-2 bottom-8 z-20 rounded-3xl bg-white p-5 shadow-2xl">
-      <button type="button" onClick={onClose} className="absolute right-4 top-3 p-2 text-xl text-slate-400" aria-label="닫기">
-        ×
-      </button>
-      <h2 className="text-lg font-bold text-slate-900">다음 갈 곳</h2>
+    <Sheet onClose={onClose}>
+      <h2 className="text-[15px] font-extrabold text-gray-900">다음 갈 곳</h2>
       {course.stops.length === 0 ? (
         <p className="mt-2 text-sm text-slate-500">근처 1.5km 안에 30°C 넘는 곳이 아직 없어요.</p>
       ) : (
@@ -66,7 +71,7 @@ export function CourseCard({ course, onClose }: { course: Course; onClose: () =>
                   {i + 1}
                 </span>
                 <span className="flex-1 truncate font-semibold text-slate-800">{s.name}</span>
-                <span className="font-bold tabular-nums text-red-500">{s.temp.toFixed(1)}°</span>
+                <span className="font-bold tabular-nums text-[#B91C1C]">{Math.round(s.temp)}°</span>
                 <span className="w-14 text-right text-sm tabular-nums text-slate-500">{fmtDist(s.distanceM)}</span>
               </li>
             ))}
@@ -76,6 +81,6 @@ export function CourseCard({ course, onClose }: { course: Course; onClose: () =>
           </p>
         </>
       )}
-    </div>
+    </Sheet>
   );
 }

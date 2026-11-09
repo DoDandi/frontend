@@ -32,7 +32,7 @@ export const COURSE_DEFAULT_LIMIT = 3;
 
 // 지도
 export const DEFAULT_CENTER = { lat: 35.869, lng: 128.596 }; // 동성로 일대
-export const DEFAULT_LEVEL = 5;
+export const DEFAULT_ZOOM = 13.4;
 export const POLL_MS = 5000;
 
 export const CATEGORIES = ['food', 'cafe', 'market', 'night_market', 'street', 'show', 'festival', 'cheer'] as const;
@@ -63,5 +63,29 @@ export const CATEGORY_BASELINE: Record<Category, number> = {
 
 // 구역 평소값 기본값 (구역 안 모든 반응을 합친 R과 비교)
 export const ZONE_BASELINE = 20;
-// 확대 레벨이 이 값 이상(멀리 봄)이면 구역, 미만(가까이 봄)이면 매장을 그린다
-export const ZONE_LEVEL_THRESHOLD = 5;
+// 확대 레벨(zoom)이 이 값 미만(멀리 봄)이면 구역, 이상(가까이 봄)이면 장소를 그린다
+export const ZONE_ZOOM_THRESHOLD = 14.5;
+// 구역을 누르면 이 레벨로 확대한다
+export const ZONE_FOCUS_ZOOM = 15.5;
+
+// 지도 필터 그룹 (11/7 결정: 음식·축제·스포츠·기타). 백엔드가 `group` 필드를 주기 전까지 화면에서 카테고리로 묶는다
+export const GROUPS = ['food', 'festival', 'sports', 'etc'] as const;
+export type Group = (typeof GROUPS)[number];
+
+export const GROUP_LABEL: Record<Group, string> = {
+  food: '음식',
+  festival: '축제',
+  sports: '스포츠',
+  etc: '기타',
+};
+
+export const CATEGORY_GROUP: Record<Category, Group> = {
+  food: 'food',
+  cafe: 'food',
+  market: 'food',
+  night_market: 'food',
+  festival: 'festival',
+  show: 'festival',
+  cheer: 'sports',
+  street: 'etc',
+};
