@@ -1,16 +1,16 @@
 'use client';
 
-import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/constants';
+import { GROUPS, GROUP_LABEL, type Group } from '@/lib/constants';
 
-type Props = { value: Category | null; onChange: (c: Category | null) => void };
+type Props = { value: Group | null; onChange: (g: Group | null) => void };
 
 export default function FilterChips({ value, onChange }: Props) {
-  const items: { key: Category | null; label: string }[] = [
+  const items: { key: Group | null; label: string }[] = [
     { key: null, label: '전체' },
-    ...CATEGORIES.map(c => ({ key: c, label: CATEGORY_LABEL[c] })),
+    ...GROUPS.map(g => ({ key: g, label: GROUP_LABEL[g] })),
   ];
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none]">
+    <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
       {items.map(it => {
         const active = value === it.key;
         return (
@@ -18,8 +18,8 @@ export default function FilterChips({ value, onChange }: Props) {
             key={it.label}
             type="button"
             onClick={() => onChange(it.key)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold shadow ${
-              active ? 'bg-slate-900 text-white' : 'bg-white text-slate-700'
+            className={`shrink-0 rounded-2xl px-3 py-1.5 text-xs ${
+              active ? 'bg-gray-900 font-bold text-white' : 'border border-gray-300 bg-white text-gray-800'
             }`}
           >
             {it.label}

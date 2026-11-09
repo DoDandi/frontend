@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useKakaoMap } from './KakaoMap';
 import { MapOverlay } from './HeatMarker';
+import Sheet from './Sheet';
 
 export type CourseStop = { id: string; name: string; lat: number; lng: number; temp: number; distanceM: number };
 export type Course = { stops: CourseStop[]; totalDistanceM: number };
@@ -50,11 +51,8 @@ export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: 
 /** 하단 카드: 정류장 이름, 온도, 거리, 총 이동 거리 */
 export function CourseCard({ course, onClose }: { course: Course; onClose: () => void }) {
   return (
-    <div className="absolute inset-x-2 bottom-8 z-20 rounded-3xl bg-white p-5 shadow-2xl">
-      <button type="button" onClick={onClose} className="absolute right-4 top-3 p-2 text-xl text-slate-400" aria-label="닫기">
-        ×
-      </button>
-      <h2 className="text-lg font-bold text-slate-900">다음 갈 곳</h2>
+    <Sheet onClose={onClose}>
+      <h2 className="text-[15px] font-extrabold text-gray-900">다음 갈 곳</h2>
       {course.stops.length === 0 ? (
         <p className="mt-2 text-sm text-slate-500">근처 1.5km 안에 30°C 넘는 곳이 아직 없어요.</p>
       ) : (
@@ -66,7 +64,7 @@ export function CourseCard({ course, onClose }: { course: Course; onClose: () =>
                   {i + 1}
                 </span>
                 <span className="flex-1 truncate font-semibold text-slate-800">{s.name}</span>
-                <span className="font-bold tabular-nums text-red-500">{s.temp.toFixed(1)}°</span>
+                <span className="font-bold tabular-nums text-[#B91C1C]">{Math.round(s.temp)}°</span>
                 <span className="w-14 text-right text-sm tabular-nums text-slate-500">{fmtDist(s.distanceM)}</span>
               </li>
             ))}
@@ -76,6 +74,6 @@ export function CourseCard({ course, onClose }: { course: Course; onClose: () =>
           </p>
         </>
       )}
-    </div>
+    </Sheet>
   );
 }

@@ -45,8 +45,8 @@ export function band(temp: number): Band {
 }
 
 export const BAND_LABEL: Record<Band, string> = {
-  mild: '미지근',
+  mild: '서늘',
   warm: '따뜻',
-  hot: '뜨거움',
+  hot: '폭염',
   daefrica: '대프리카',
 };
