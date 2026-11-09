@@ -46,5 +46,5 @@ lib/         상수, 기기 ID, 거리·시간 유틸, 온도 단계 (백엔드 
 
 ## 규칙
 
-- 작업 브랜치(`feature/…`) → `develop`으로 PR 후 머지. `main`에는 직접 푸시할 수 없고, 최종본만 `develop`에서 PR로 머지한다
+- 작업 브랜치(`feature/…`) → `develop`으로 PR 후 머지. `main`에는 직접 푸시하지 않고, 최종본만 `develop`에서 PR로 머지한다
 - `lib/constants.ts`, `lib/temperature.ts`, `lib/geo.ts`, `lib/time.ts`는 백엔드와 같은 내용을 복사해 쓰므로, 백엔드에서 바뀌면 같이 맞추기
