@@ -73,7 +73,12 @@ export default function PlaceSheet({ placeId, onClose, onCourseFromHere }: Props
       </div>
 
       <div className="mt-3">
-        <div className="text-sm font-extrabold text-gray-900">현장에 남긴 순간</div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-extrabold text-gray-900">현장에 남긴 순간</span>
+          <Link href={`/feed/new?placeId=${p.id}`} className="text-xs font-bold text-[#B7392D]">
+            + 기록 남기기
+          </Link>
+        </div>
         <p className="mt-2 rounded-lg bg-gray-50 py-5 text-center text-xs text-gray-500">아직 남긴 사진이 없어요</p>
       </div>
 
