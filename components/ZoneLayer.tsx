@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { BAND_STYLE, MapOverlay } from './HeatMarker';
-import { OVERLAY_BEFORE } from '@/lib/mapStyle';
 import { useBaseMap } from './BaseMap';
 import Sheet, { BandChip } from './Sheet';
 
@@ -22,20 +21,14 @@ export type ZoneItem = {
 
 export type ZonePlace = { id: string; zoneId: string | null; name: string; category: Category; temp: number; band: Band };
 
-/** 중심에서 반경 r(m)인 원을 다각형 좌표로 */
-function circlePath(lng: number, lat: number, r: number): [number, number][] {
-  const ky = 111_320;
-  const kx = ky * Math.cos((lat * Math.PI) / 180);
-  return Array.from({ length: 49 }, (_, i) => {
-    const a = (i / 48) * 2 * Math.PI;
-    return [lng + (r * Math.cos(a)) / kx, lat + (r * Math.sin(a)) / ky];
-  });
-}
+/** 온도 → 구역 원 지름(px). 10°에 50px, 50°에 138px (피그마: 뜨거울수록 큰 원). 구역 15곳이 겹치지 않게 작게 시작한다 */
+const zoneSize = (temp: number) => Math.round(50 + (Math.min(Math.max(temp, 10), 50) - 10) * 2.2);
 
-/** 구역: 동네 크기의 반투명 원 + 가운데 큰 온도·구역명 */
+/** 구역: 온도에 따라 커지는 반투명 원 + 가운데 큰 온도·구역명 */
 export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => void }) {
   const map = useBaseMap();
-  const { color } = BAND_STYLE[zone.band];
+  const s = BAND_STYLE[zone.band];
+  const d = zoneSize(zone.temp);
 
   // 누르면 구역으로 확대해 안의 장소 마커가 보이게 한다
   const handleClick = () => {
@@ -45,47 +38,22 @@ export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => v
     }
     onClick();
   };
-  const clickRef = useRef(handleClick);
-  useEffect(() => {
-    clickRef.current = handleClick;
-  });
 
-  useEffect(() => {
-    if (!map) return;
-    const id = `zone-${zone.id}`;
-    map.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circlePath(zone.lng, zone.lat, zone.radiusM)] } } });
-    map.addLayer(
-      { id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': color, 'fill-opacity': zone.band === 'mild' ? 0.32 : zone.band === 'warm' ? 0.28 : 0.24 } },
-      OVERLAY_BEFORE
-    );
-    map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 2 } }, OVERLAY_BEFORE);
-    const onClickLayer = () => clickRef.current();
-    map.on('click', `${id}-fill`, onClickLayer);
-    return () => {
-      map.off('click', `${id}-fill`, onClickLayer);
-      if (!map.getStyle()) return;
-      map.removeLayer(`${id}-line`);
-      map.removeLayer(`${id}-fill`);
-      map.removeSource(id);
-    };
-  }, [map, zone.id, zone.lat, zone.lng, zone.radiusM, zone.band, color]);
-
-  const s = BAND_STYLE[zone.band];
-  const size = zone.band === 'mild' ? 20 : zone.band === 'warm' ? 24 : 34;
   return (
     <MapOverlay lat={zone.lat} lng={zone.lng} zIndex={Math.round(zone.temp)}>
       <button
         type="button"
         onClick={handleClick}
         aria-label={`${zone.name} ${Math.round(zone.temp)}도`}
-        className={`flex flex-col items-center whitespace-nowrap leading-none [text-shadow:0_0_6px_rgba(255,255,255,0.9)] ${
+        className={`flex flex-col items-center justify-center rounded-full leading-none transition-all duration-500 ${
           zone.band === 'daefrica' ? 'heat-pulse-fast' : zone.band === 'hot' ? 'heat-pulse-slow' : ''
         }`}
+        style={{ width: d, height: d, backgroundColor: `${s.color}B3`, border: `1.5px solid ${s.color}` }}
       >
-        <span className="font-extrabold tabular-nums" style={{ fontSize: size, color: s.text }}>
+        <span className="font-extrabold tabular-nums text-[#2B211F]" style={{ fontSize: Math.max(17, Math.round(d / 4)) }}>
           {Math.round(zone.temp)}°
         </span>
-        <span className="mt-1 font-bold" style={{ fontSize: size >= 34 ? 13 : 11, color: s.text }}>
+        <span className="mt-1 whitespace-nowrap font-bold text-[#2B211F]" style={{ fontSize: d >= 110 ? 14 : 11 }}>
           {zone.name}
         </span>
       </button>

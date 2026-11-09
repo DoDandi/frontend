@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import BandLegend from '@/components/BandLegend';
-import BaseMap from '@/components/BaseMap';
+import BaseMap, { MapFocus } from '@/components/BaseMap';
 import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer';
 import FilterChips from '@/components/FilterChips';
-import HeatMarker, { BAND_STYLE } from '@/components/HeatMarker';
+import HeatMarker from '@/components/HeatMarker';
+import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
-import Sheet, { BandChip } from '@/components/Sheet';
+import Sheet from '@/components/Sheet';
 import TabBar from '@/components/TabBar';
 import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
 import {
@@ -17,12 +18,21 @@ import {
   DEFAULT_ZOOM,
   GROUP_LABEL,
   POLL_MS,
+  ZONE_FOCUS_ZOOM,
   ZONE_ZOOM_THRESHOLD,
   type Group,
 } from '@/lib/constants';
-import { BAND_LABEL } from '@/lib/temperature';
+import { BAND_LABEL, type Band } from '@/lib/temperature';
 
 type PlaceItem = ZonePlace & { lat: number; lng: number };
+
+// 구역 미리보기 한 줄 설명 (평소값 20° 기준). 백엔드가 vsBaseline을 주면 숫자로 바꾼다
+const BAND_DESC: Record<Band, string> = {
+  mild: '평소보다 조용해요',
+  warm: '평소만큼 활기 있어요',
+  hot: '평소보다 뜨거워요',
+  daefrica: '평소보다 훨씬 뜨거워요',
+};
 type LatLng = { lat: number; lng: number };
 
 function getPosition(): Promise<LatLng> {
@@ -43,6 +53,7 @@ export default function Home() {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [course, setCourse] = useState<{ origin: LatLng; data: Course } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const { data: places } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
@@ -51,6 +62,7 @@ export default function Home() {
   const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
   const visiblePlaces = places?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
   const zone = zones?.find(z => z.id === zoneId);
+  const selectedPlace = places?.find(p => p.id === selected) ?? null;
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
 
   const showCourse = useCallback(async (from?: LatLng) => {
@@ -79,10 +91,26 @@ export default function Home() {
   }, [showCourse]);
 
   return (
-    <main className="flex h-dvh w-full flex-col overflow-hidden bg-white text-gray-900">
+    <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-white text-gray-900">
       <header className="flex shrink-0 flex-col gap-2 px-[18px] pb-2.5 pt-[max(env(safe-area-inset-top),18px)]">
-        <h1 className="text-[22px] font-extrabold">열기지도</h1>
-        <p className="-mt-1 text-xs text-gray-600">5초마다 갱신</p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[22px] font-extrabold">열기지도</h1>
+          <button
+            type="button"
+            onClick={() => setSearching(true)}
+            className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6F4F1] text-gray-800"
+            aria-label="장소 검색"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-4-4" />
+            </svg>
+          </button>
+        </div>
+        <p className="-mt-1 flex items-center gap-1.5 text-xs text-gray-600">
+          <span className="h-2 w-2 rounded-full bg-[#766F69]" />
+          5초마다 갱신
+        </p>
         <FilterChips
           value={group}
           onChange={g => {
@@ -130,9 +158,10 @@ export default function Home() {
               />
             ))}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
+          <MapFocus target={selectedPlace} zoom={ZONE_FOCUS_ZOOM} />
         </BaseMap>
 
-        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+        <div className="pointer-events-none absolute right-3 top-2.5 z-10">
           <BandLegend />
         </div>
         {!selected && !course && (
@@ -162,21 +191,23 @@ export default function Home() {
             <Sheet>
               <button type="button" onClick={() => setZoneId(hottestZone.id)} className="block w-full text-left">
                 <div className="flex items-center justify-between">
-                  <span className="text-[15px] font-extrabold">지금 뜨거운 곳</span>
-                  <BandChip
-                    label={BAND_LABEL[hottestZone.band]}
-                    bg={BAND_STYLE[hottestZone.band].soft}
-                    fg={BAND_STYLE[hottestZone.band].text}
-                  />
-                </div>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-base font-bold">{hottestZone.name}</span>
-                  <span className="text-base font-extrabold tabular-nums" style={{ color: BAND_STYLE[hottestZone.band].text }}>
-                    열기 {Math.round(hottestZone.temp)}°
+                  <span className="text-lg font-extrabold">지금 뜨거운 곳</span>
+                  <span className="flex items-center gap-1 rounded-full bg-[#FCE8E1] px-3 py-1.5 text-xs font-bold text-[#B7392D]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 1 2 2 3 3 3 0-3-1-5 0-8z" />
+                    </svg>
+                    {BAND_LABEL[hottestZone.band]}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-600">장소 {hottestZone.placeCount}곳 · 눌러서 둘러보기</p>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-base font-bold">{hottestZone.name}</span>
+                  <span className="text-base font-extrabold tabular-nums text-[#B7392D]">열기 {Math.round(hottestZone.temp)}°</span>
+                </div>
+                <p className="mt-1.5 text-[13px] text-gray-600">
+                  {BAND_DESC[hottestZone.band]} · 장소 {hottestZone.placeCount}곳
+                </p>
               </button>
+              <p className="mt-3 border-t border-[#E9E2DA] pt-3 text-[13px] text-gray-600">지도를 확대하면 장소별 열기를 볼 수 있어요</p>
             </Sheet>
           )
         ) : (
@@ -193,6 +224,20 @@ export default function Home() {
       </div>
 
       <TabBar active="map" />
+
+      {searching && places && (
+        <PlaceSearch
+          places={places}
+          zoneName={id => zones?.find(z => z.id === id)?.name ?? null}
+          onClose={() => setSearching(false)}
+          onSelect={id => {
+            setSearching(false);
+            setCourse(null);
+            setZoneId(null);
+            setSelected(id);
+          }}
+        />
+      )}
     </main>
   );
 }

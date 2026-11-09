@@ -45,7 +45,6 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
       localIdeographFontFamily: '"Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
     });
     m.touchZoomRotate.disableRotation();
-    m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: MAP_ATTRIBUTION }), 'bottom-right');
     m.on('zoomend', () => onZoomChangeRef.current?.(m.getZoom()));
     m.on('load', () => setMap(m));
     m.on('error', e => {
@@ -68,7 +67,28 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-slate-600">{error}</div>
       )}
+      {/* 출처 표시 (OpenStreetMap 라이선스 필수). 하단 시트가 지도 아래를 덮으므로 왼쪽 위에 한 줄로 둔다 */}
+      <a
+        href="https://www.openstreetmap.org/copyright"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute left-2 top-2 z-30 rounded bg-white/75 px-1.5 text-[9px] leading-4 text-gray-600"
+      >
+        {MAP_ATTRIBUTION}
+      </a>
       {map && <MapContext.Provider value={map}>{children}</MapContext.Provider>}
     </div>
   );
+}
+
+/** 선택한 장소로 지도를 옮긴다. 장소 마커가 보이도록 확대하고, 하단 시트에 가리지 않게 화면 위쪽에 둔다 */
+export function MapFocus({ target, zoom }: { target: { lat: number; lng: number } | null; zoom: number }) {
+  const map = useBaseMap();
+  const lat = target?.lat;
+  const lng = target?.lng;
+  useEffect(() => {
+    if (!map || lat == null || lng == null) return;
+    map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), zoom), offset: [0, -Math.round(map.getContainer().offsetHeight * 0.25)] });
+  }, [map, lat, lng, zoom]);
+  return null;
 }

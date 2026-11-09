@@ -9,7 +9,7 @@ const NAME: ExpressionSpecification = ['coalesce', ['get', 'name:ko'], ['get', '
 const MAJOR = ['motorway', 'trunk', 'primary', 'secondary'];
 const FONT = ['Noto Sans Regular'];
 
-export const MAP_ATTRIBUTION = '© OpenStreetMap · OpenFreeMap';
+export const MAP_ATTRIBUTION = '© OpenStreetMap · OpenMapTiles · OpenFreeMap';
 
 export const MAP_STYLE: StyleSpecification = {
   version: 8,
