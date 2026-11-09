@@ -13,8 +13,8 @@ export type SiteState =
   | { status: 'choose'; candidates: { id: string; name: string; distanceM: number }[] }
   | { status: 'ok'; place: { id: string; name: string } };
 
-type Result = { tempBefore: number; tempAfter: number; delta: number; peers: number };
-type Phase = { kind: 'idle' } | { kind: 'tapping' } | { kind: 'sending' } | { kind: 'done'; result: Result } | { kind: 'error'; message: string };
+export type HeatApiResult = { tempBefore: number; tempAfter: number; delta: number; peers: number };
+type Phase = { kind: 'idle' } | { kind: 'tapping' } | { kind: 'sending' } | { kind: 'error'; message: string };
 type MotionPermission = { requestPermission?: () => Promise<'granted' | 'denied'> };
 
 const COOLDOWN_KEY = 'yeolgi-heat-cooldown';
@@ -45,7 +45,8 @@ export default function HeatSession({
   fixRef: RefObject<Fix | null>;
   onChoose: (placeId: string) => void;
   onToast: (msg: string) => void;
-  onSent: () => void;
+  /** 성공하면 결과를 넘긴다. 결과 시트(SCREEN 13)·대프리카(14)는 페이지가 그린다 */
+  onSent: (result: HeatApiResult, placeId: string) => void;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [taps, setTaps] = useState(0);
@@ -54,7 +55,6 @@ export default function HeatSession({
   const [ringKey, setRingKey] = useState(0);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => Date.now());
-  const [daefrica, setDaefrica] = useState(false);
 
   const tapsRef = useRef(0);
   const sessionPlace = useRef<{ id: string; name: string } | null>(null);
@@ -124,13 +124,8 @@ export default function HeatSession({
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
         setCooldown(target.id, Date.now() + COOLDOWN_MIN * 60_000);
-        setPhase({ kind: 'done', result: body });
-        onSent();
-        if (body.tempAfter >= 40) {
-          setDaefrica(true);
-          navigator.vibrate?.([120, 60, 120, 60, 240]);
-          setTimeout(() => setDaefrica(false), 1800);
-        }
+        setPhase({ kind: 'idle' });
+        onSent(body, target.id);
         return;
       }
       let message = '잠시 뒤 다시 시도해 주세요';
@@ -166,8 +161,8 @@ export default function HeatSession({
 
   // 완료·오류 안내는 잠시 보여 주고 원래 상태로
   useEffect(() => {
-    if (phase.kind !== 'done' && phase.kind !== 'error') return;
-    const t = setTimeout(() => setPhase({ kind: 'idle' }), phase.kind === 'done' ? 6000 : 4500);
+    if (phase.kind !== 'error') return;
+    const t = setTimeout(() => setPhase({ kind: 'idle' }), 4500);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -255,10 +250,8 @@ export default function HeatSession({
                 </button>
               ))}
             </div>
-          ) : shownPlace && (busy || phase.kind === 'done' || site.status === 'ok') ? (
-            <span className={chipCls}>
-              ✓ {shownPlace.name} · {phase.kind === 'done' ? '참여 완료' : '현장 인증'}
-            </span>
+          ) : shownPlace && (busy || site.status === 'ok') ? (
+            <span className={chipCls}>✓ {shownPlace.name} · 현장 인증</span>
           ) : site.status === 'locating' ? (
             <span className={chipCls}>위치 확인 중… (오차 {site.accuracyM}m · {GPS_MAX_ACCURACY_M}m 이하 필요)</span>
           ) : null}
@@ -272,14 +265,6 @@ export default function HeatSession({
               </div>
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">
                 {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요! 흔들어도 올라가요' : '반응을 누르면 불꽃이 올라가요!'}
-              </p>
-            </div>
-          )}
-          {phase.kind === 'done' && (
-            <div className="w-[327px] max-w-full rounded-[14px] border border-[#E9E2DA] bg-white px-[13px] pb-2.5 pt-2" aria-live="polite">
-              <p className="text-lg font-bold leading-[25px] text-[#282522]">🔥 열기를 전했어요!</p>
-              <p className="mt-2 text-xs leading-[17px] text-[#766F69]">
-                +{phase.result.delta.toFixed(1)}° · 지금 {phase.result.peers}명이 함께 · 지도는 5초마다 갱신
               </p>
             </div>
           )}
@@ -310,7 +295,6 @@ export default function HeatSession({
         </div>
       </div>
 
-      {daefrica && <div className="daefrica-mode pointer-events-none fixed inset-0 z-50 opacity-60" aria-hidden="true" />}
     </>
   );
 }

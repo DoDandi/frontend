@@ -13,7 +13,16 @@ export type Course = { stops: CourseStop[]; totalDistanceM: number };
 const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`);
 
 /** 지도 위 번호 마커와 연결선 */
-export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: number }; course: Course }) {
+export function CourseOverlay({
+  origin,
+  course,
+  padBottom = 260,
+}: {
+  origin: { lat: number; lng: number };
+  course: Course;
+  /** 아래 시트 높이만큼 비워 두고 맞춘다 */
+  padBottom?: number;
+}) {
   const map = useBaseMap();
 
   useEffect(() => {
@@ -31,13 +40,13 @@ export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: 
       OVERLAY_BEFORE
     );
     const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
-    map.fitBounds(bounds, { padding: { top: 80, right: 40, bottom: 260, left: 40 }, maxZoom: 16 });
+    map.fitBounds(bounds, { padding: { top: 80, right: 40, bottom: padBottom, left: 40 }, maxZoom: 16 });
     return () => {
       if (!map.getStyle()) return;
       map.removeLayer('course');
       map.removeSource('course');
     };
-  }, [map, origin, course]);
+  }, [map, origin, course, padBottom]);
 
   return (
     <>

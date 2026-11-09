@@ -6,8 +6,9 @@ import BandLegend from '@/components/BandLegend';
 import BaseMap, { MapFocus } from '@/components/BaseMap';
 import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer';
 import FilterChips from '@/components/FilterChips';
+import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
 import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession';
-import HeatMarker from '@/components/HeatMarker';
+import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet from '@/components/Sheet';
@@ -62,6 +63,9 @@ export default function Home() {
   const fixRef = useRef<Fix | null>(null);
   // 열기를 올릴 장소로 사용자가 고른 곳 (후보가 여러 곳이거나 장소 상세에서 "열기 올리기"를 눌렀을 때)
   const [chosenId, setChosenId] = useState<string | null>(null);
+  // 열기 올리기 결과 (SCREEN 13 결과 시트, 40° 이상이면 SCREEN 14 대프리카 먼저)
+  const [outcome, setOutcome] = useState<HeatOutcome | null>(null);
+  const [showDaefrica, setShowDaefrica] = useState(false);
 
   // 현장 인증을 위해 위치와 오차를 계속 받는다 (권한이 없으면 null → 비활성)
   useEffect(() => {
@@ -88,6 +92,10 @@ export default function Home() {
 
   const { data: places, mutate: refreshPlaces } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
+  const { data: outcomeCourse } = useSWR<Course>(
+    outcome ? `/api/course?lat=${outcome.place.lat}&lng=${outcome.place.lng}&limit=2` : null,
+    fetcher
+  );
 
   // 멀리서 보면 구역, 확대하거나 필터를 고르면 장소 마커
   const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
@@ -195,6 +203,17 @@ export default function Home() {
               />
             ))}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
+          {outcome && (
+            <>
+              {/* 오른 온도 말풍선 (SCREEN 13) */}
+              <MapOverlay lat={outcome.place.lat} lng={outcome.place.lng} zIndex={400}>
+                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#EC5B38] px-2.5 py-[5px] text-xs font-bold text-white">
+                  +{outcome.delta.toFixed(1)}° ↑
+                </span>
+              </MapOverlay>
+              {outcomeCourse && outcomeCourse.stops.length > 0 && <CourseOverlay origin={outcome.place} course={outcomeCourse} padBottom={480} />}
+            </>
+          )}
           <MapFocus target={selectedPlace} zoom={ZONE_FOCUS_ZOOM} />
         </BaseMap>
 
@@ -209,10 +228,32 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
-          {!selected && !course && (
-            <HeatSession site={site} fixRef={fixRef} onChoose={setChosenId} onToast={showToast} onSent={() => refreshPlaces()} />
+          {!selected && !course && !outcome && (
+            <HeatSession
+              site={site}
+              fixRef={fixRef}
+              onChoose={setChosenId}
+              onToast={showToast}
+              onSent={(r, placeId) => {
+                refreshPlaces();
+                const p = places?.find(x => x.id === placeId);
+                if (!p) return;
+                setOutcome({ place: { id: p.id, name: p.name, lat: p.lat, lng: p.lng }, ...r });
+                setShowDaefrica(r.tempAfter >= DAEFRICA_TEMP);
+              }}
+            />
           )}
-        {selected ? (
+        {outcome ? (
+          <HeatResultSheet
+            outcome={outcome}
+            course={outcomeCourse}
+            onSelectPlace={id => {
+              setOutcome(null);
+              setSelected(id);
+            }}
+            onClose={() => setOutcome(null)}
+          />
+        ) : selected ? (
           <PlaceSheet
             placeId={selected}
             onClose={() => setSelected(null)}
@@ -270,6 +311,8 @@ export default function Home() {
       </div>
 
       <TabBar active="map" />
+
+      {outcome && showDaefrica && <DaefricaOverlay outcome={outcome} onNext={() => setShowDaefrica(false)} />}
 
       {searching && places && (
         <PlaceSearch
