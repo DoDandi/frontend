@@ -106,7 +106,8 @@ export default function HeatSession({
     const fix = fixRef.current;
     if (!target) return;
     setPhase({ kind: 'sending' });
-    const s = shake.current.n ? Math.min(shake.current.sum / shake.current.n / SHAKE_DIVISOR, 1) : 0;
+    // 흔들기 센서 값이 하나도 없으면 null → 서버가 연타만으로 점수를 매긴다
+    const s = shake.current.n ? Math.min(shake.current.sum / shake.current.n / SHAKE_DIVISOR, 1) : null;
     try {
       const res = await fetch('/api/heat', {
         method: 'POST',
@@ -118,7 +119,7 @@ export default function HeatSession({
           lng: fix?.lng,
           accuracy: fix ? Math.round(fix.accuracy) : undefined,
           taps: Math.min(tapsRef.current, 200),
-          shake: Math.round(s * 1000) / 1000,
+          shake: s == null ? null : Math.round(s * 1000) / 1000,
         }),
       });
       const body = await res.json().catch(() => ({}));

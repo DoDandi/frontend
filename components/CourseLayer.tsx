@@ -70,7 +70,7 @@ export function CourseCard({ course, onClose }: { course: Course; onClose: () =>
     <Sheet onClose={onClose}>
       <h2 className="text-[15px] font-extrabold text-gray-900">다음 갈 곳</h2>
       {course.stops.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">근처 1.5km 안에 30°C 넘는 곳이 아직 없어요.</p>
+        <p className="mt-2 text-sm text-slate-500">근처 1.5km 안에 20° 넘는 곳이 아직 없어요.</p>
       ) : (
         <>
           <ol className="mt-3 space-y-2">

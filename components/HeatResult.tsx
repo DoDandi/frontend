@@ -65,7 +65,7 @@ export function HeatResultSheet({
       <div className="h-px w-full shrink-0 bg-[#E9E2DA]" />
       <div className="flex items-center">
         <p className="flex-1 whitespace-pre text-[15px] font-bold text-[#282522]">{'다음 갈 곳  ·  열기 코스'}</p>
-        <p className="text-[11px] text-[#766F69]">가까운 뜨거운 곳 추천</p>
+        <p className="text-[11px] text-[#766F69]">20° 이상만 추천</p>
       </div>
       {!course ? (
         <p className="py-3 text-center text-xs text-[#766F69]">다음 갈 곳을 찾는 중…</p>
