@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import BandLegend from '@/components/BandLegend';
+import BaseMap from '@/components/BaseMap';
 import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer';
 import FilterChips from '@/components/FilterChips';
 import HeatMarker, { BAND_STYLE } from '@/components/HeatMarker';
-import KakaoMap from '@/components/KakaoMap';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { BandChip } from '@/components/Sheet';
 import TabBar from '@/components/TabBar';
@@ -14,10 +14,10 @@ import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } 
 import {
   CATEGORY_GROUP,
   DEFAULT_CENTER,
-  DEFAULT_LEVEL,
+  DEFAULT_ZOOM,
   GROUP_LABEL,
   POLL_MS,
-  ZONE_LEVEL_THRESHOLD,
+  ZONE_ZOOM_THRESHOLD,
   type Group,
 } from '@/lib/constants';
 import { BAND_LABEL } from '@/lib/temperature';
@@ -40,7 +40,7 @@ export default function Home() {
   const [group, setGroup] = useState<Group | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [zoneId, setZoneId] = useState<string | null>(null);
-  const [level, setLevel] = useState(DEFAULT_LEVEL);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [course, setCourse] = useState<{ origin: LatLng; data: Course } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export default function Home() {
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
 
   // 멀리서 보면 구역, 확대하거나 필터를 고르면 장소 마커
-  const showZones = !group && level >= ZONE_LEVEL_THRESHOLD;
+  const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
   const visiblePlaces = places?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
   const zone = zones?.find(z => z.id === zoneId);
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
@@ -93,7 +93,7 @@ export default function Home() {
       </header>
 
       <div className="relative min-h-0 flex-1">
-        <KakaoMap className="h-full w-full" onLevelChange={setLevel}>
+        <BaseMap className="h-full w-full" onZoomChange={setZoom}>
           {showZones &&
             zones?.map(z => (
               <ZoneMarker
@@ -130,7 +130,7 @@ export default function Home() {
               />
             ))}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
-        </KakaoMap>
+        </BaseMap>
 
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
           <BandLegend />

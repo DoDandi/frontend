@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CATEGORY_LABEL, type Category } from '@/lib/constants';
+import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { BAND_STYLE, MapOverlay } from './HeatMarker';
-import { useKakaoMap } from './KakaoMap';
+import { OVERLAY_BEFORE } from '@/lib/mapStyle';
+import { useBaseMap } from './BaseMap';
 import Sheet, { BandChip } from './Sheet';
 
 export type ZoneItem = {
@@ -21,18 +22,26 @@ export type ZoneItem = {
 
 export type ZonePlace = { id: string; zoneId: string | null; name: string; category: Category; temp: number; band: Band };
 
+/** 중심에서 반경 r(m)인 원을 다각형 좌표로 */
+function circlePath(lng: number, lat: number, r: number): [number, number][] {
+  const ky = 111_320;
+  const kx = ky * Math.cos((lat * Math.PI) / 180);
+  return Array.from({ length: 49 }, (_, i) => {
+    const a = (i / 48) * 2 * Math.PI;
+    return [lng + (r * Math.cos(a)) / kx, lat + (r * Math.sin(a)) / ky];
+  });
+}
+
 /** 구역: 동네 크기의 반투명 원 + 가운데 큰 온도·구역명 */
 export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => void }) {
-  const ctx = useKakaoMap();
+  const map = useBaseMap();
   const { color } = BAND_STYLE[zone.band];
 
   // 누르면 구역으로 확대해 안의 장소 마커가 보이게 한다
   const handleClick = () => {
-    if (ctx) {
-      ctx.map.setLevel(3);
-      ctx.map.setCenter(new ctx.kakao.maps.LatLng(zone.lat, zone.lng));
-      // 하단 시트에 가리지 않도록 구역이 화면 위쪽에 오게 지도를 내린다
-      ctx.map.panBy(0, Math.round(ctx.map.getNode().offsetHeight * 0.25));
+    if (map) {
+      // 하단 시트에 가리지 않도록 구역이 화면 위쪽에 오게 한다
+      map.easeTo({ center: [zone.lng, zone.lat], zoom: ZONE_FOCUS_ZOOM, offset: [0, -Math.round(map.getContainer().offsetHeight * 0.25)] });
     }
     onClick();
   };
@@ -42,21 +51,24 @@ export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => v
   });
 
   useEffect(() => {
-    if (!ctx) return;
-    const { kakao, map } = ctx;
-    const circle = new kakao.maps.Circle({
-      center: new kakao.maps.LatLng(zone.lat, zone.lng),
-      radius: zone.radiusM,
-      strokeWeight: 2,
-      strokeColor: color,
-      strokeOpacity: 0.9,
-      fillColor: color,
-      fillOpacity: zone.band === 'mild' ? 0.32 : zone.band === 'warm' ? 0.28 : 0.24,
-    });
-    circle.setMap(map);
-    kakao.maps.event.addListener(circle, 'click', () => clickRef.current());
-    return () => circle.setMap(null);
-  }, [ctx, zone.lat, zone.lng, zone.radiusM, zone.band, color]);
+    if (!map) return;
+    const id = `zone-${zone.id}`;
+    map.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circlePath(zone.lng, zone.lat, zone.radiusM)] } } });
+    map.addLayer(
+      { id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': color, 'fill-opacity': zone.band === 'mild' ? 0.32 : zone.band === 'warm' ? 0.28 : 0.24 } },
+      OVERLAY_BEFORE
+    );
+    map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 2 } }, OVERLAY_BEFORE);
+    const onClickLayer = () => clickRef.current();
+    map.on('click', `${id}-fill`, onClickLayer);
+    return () => {
+      map.off('click', `${id}-fill`, onClickLayer);
+      if (!map.getStyle()) return;
+      map.removeLayer(`${id}-line`);
+      map.removeLayer(`${id}-fill`);
+      map.removeSource(id);
+    };
+  }, [map, zone.id, zone.lat, zone.lng, zone.radiusM, zone.band, color]);
 
   const s = BAND_STYLE[zone.band];
   const size = zone.band === 'mild' ? 20 : zone.band === 'warm' ? 24 : 34;

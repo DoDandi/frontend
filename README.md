@@ -1,6 +1,6 @@
 # 열기지도 프론트엔드 (yeolgi-map-frontend)
 
-대구 원도심의 "지금 살아 있는 현장"을 온도로 보여주는 열기지도의 모바일 웹 화면입니다. Next.js + Tailwind + 카카오맵 SDK.
+대구 원도심의 "지금 살아 있는 현장"을 온도로 보여주는 열기지도의 모바일 웹 화면입니다. Next.js + Tailwind + MapLibre(OpenFreeMap 타일).
 
 - API는 [DoDandi/backend](https://github.com/DoDandi/backend) 저장소에 있습니다.
 - 화면 코드는 지금처럼 `/api/...`로 부르고, `next.config.ts`의 rewrites가 이 요청을 `BACKEND_URL`로 넘겨줍니다. 그래서 CORS 설정이 필요 없습니다.
@@ -11,8 +11,7 @@
 
 1. 백엔드 저장소를 받아 `npm run dev -- -p 4000`으로 띄우기
 2. `.env.local.example`을 `.env.local`로 복사해 값 채우기
-3. 카카오 개발자 콘솔 → Web 플랫폼에 `http://localhost:3000`과 프론트 배포 도메인 등록
-4. 실행
+3. 실행
 
 ```bash
 npm install
@@ -21,8 +20,14 @@ npm run dev          # http://localhost:3000
 
 ## 배포 (Vercel)
 
-- 환경 변수 `NEXT_PUBLIC_KAKAO_MAP_JS_KEY`, `BACKEND_URL`(백엔드 배포 주소)을 등록합니다.
+- 환경 변수 `BACKEND_URL`(백엔드 배포 주소)을 등록합니다.
 - `BACKEND_URL`을 바꾸면 다시 배포해야 반영됩니다(빌드할 때 rewrites가 정해짐).
+
+## 지도
+
+- 카카오맵 대신 **MapLibre + OpenFreeMap 오픈 타일**로 큰길·지하철·물·공원만 남긴 단순한 지도를 그립니다 (11/9 결정). API 키가 필요 없습니다.
+- 지도 스타일은 `lib/mapStyle.ts`, 지하철 노선·역은 `public/map/*.geojson`(OpenStreetMap에서 추출)에 있습니다.
+- 지도 오른쪽 아래 `© OpenStreetMap` 출처 표시는 지우면 안 됩니다.
 
 ## 화면
 

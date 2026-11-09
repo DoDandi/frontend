@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { MapOverlay } from '@/components/HeatMarker';
-import KakaoMap from '@/components/KakaoMap';
+import BaseMap from '@/components/BaseMap';
 import { fetcher } from '@/components/PlaceSheet';
 import { getDeviceId } from '@/lib/device';
 import { formatKST } from '@/lib/time';
@@ -28,7 +28,7 @@ export default function MePage() {
         </p>
       </header>
 
-      <KakaoMap className="mx-4 h-56 overflow-hidden rounded-2xl" level={5}>
+      <BaseMap className="mx-4 h-56 overflow-hidden rounded-2xl">
         {data?.map(f => (
           <MapOverlay key={f.placeId} lat={f.lat} lng={f.lng}>
             <div className="flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-xs font-bold text-white shadow">
@@ -36,7 +36,7 @@ export default function MePage() {
             </div>
           </MapOverlay>
         ))}
-      </KakaoMap>
+      </BaseMap>
 
       <ul className="mx-4 mt-4 divide-y rounded-2xl bg-white">
         {data?.length === 0 && <li className="p-5 text-center text-sm text-slate-500">아직 열기를 올린 곳이 없어요</li>}

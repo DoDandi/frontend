@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useKakaoMap } from './KakaoMap';
+import maplibregl from 'maplibre-gl';
+import { OVERLAY_BEFORE } from '@/lib/mapStyle';
+import { useBaseMap } from './BaseMap';
 import { MapOverlay } from './HeatMarker';
 import Sheet from './Sheet';
 
@@ -12,25 +14,30 @@ const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}
 
 /** 지도 위 번호 마커와 연결선 */
 export function CourseOverlay({ origin, course }: { origin: { lat: number; lng: number }; course: Course }) {
-  const ctx = useKakaoMap();
+  const map = useBaseMap();
 
   useEffect(() => {
-    if (!ctx || course.stops.length === 0) return;
-    const { kakao, map } = ctx;
-    const path = [origin, ...course.stops].map(p => new kakao.maps.LatLng(p.lat, p.lng));
-    const line = new kakao.maps.Polyline({
-      path,
-      strokeWeight: 5,
-      strokeColor: '#0F172A',
-      strokeOpacity: 0.8,
-      strokeStyle: 'shortdash',
-    });
-    line.setMap(map);
-    const bounds = new kakao.maps.LatLngBounds();
-    path.forEach(p => bounds.extend(p));
-    map.setBounds(bounds, 80, 40, 260, 40);
-    return () => line.setMap(null);
-  }, [ctx, origin, course]);
+    if (!map || course.stops.length === 0) return;
+    const coords = [origin, ...course.stops].map(p => [p.lng, p.lat] as [number, number]);
+    map.addSource('course', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } });
+    map.addLayer(
+      {
+        id: 'course',
+        type: 'line',
+        source: 'course',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#0F172A', 'line-width': 5, 'line-opacity': 0.8, 'line-dasharray': [1, 1.5] },
+      },
+      OVERLAY_BEFORE
+    );
+    const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
+    map.fitBounds(bounds, { padding: { top: 80, right: 40, bottom: 260, left: 40 }, maxZoom: 16 });
+    return () => {
+      if (!map.getStyle()) return;
+      map.removeLayer('course');
+      map.removeSource('course');
+    };
+  }, [map, origin, course]);
 
   return (
     <>
