@@ -2,7 +2,7 @@
 
 대구 원도심의 "지금 살아 있는 현장"을 온도로 보여주는 열기지도의 모바일 웹 화면입니다. Next.js + Tailwind + MapLibre(OpenFreeMap 타일).
 
-- API는 [DoDandi/yeolgi-backend](https://github.com/DoDandi/yeolgi-backend) 저장소에 있습니다.
+- API는 [DoDandi/backend](https://github.com/DoDandi/backend) 저장소에 있습니다.
 - 화면 코드는 지금처럼 `/api/...`로 부르고, `next.config.ts`의 rewrites가 이 요청을 `BACKEND_URL`로 넘겨줍니다. 그래서 CORS 설정이 필요 없습니다.
 - 원래 하나였던 프로토타입(`Kjaemin339/yeolgi-map` 커밋 `4418821`)을 백엔드·프론트로 나눈 것입니다.
 - 전체 명세는 `CLAUDE.md`, 최신 결정 사항은 `docs/`와 노션 "현재 진행 상황 공유" 페이지를 봅니다. **`CLAUDE.md`는 10/30 명세라 11/7 결정(도 단위 10° 기준, 지도 A안 등)과 다른 부분이 있습니다.**
