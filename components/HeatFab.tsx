@@ -11,8 +11,11 @@ export default function HeatFab({
   label,
   onPress,
   ringKey,
+  locate = false,
 }: {
   active: boolean;
+  /** 기본 화면(장소를 고르기 전): 현재 위치로 이동하는 버튼 모양 */
+  locate?: boolean;
   label: string;
   onPress: () => void;
   /** 바뀔 때마다 누르는 순간의 반응 링을 한 번 보여 준다 */
@@ -33,9 +36,18 @@ export default function HeatFab({
         }
       }}
       className="relative block h-[90px] w-[76px] touch-manipulation select-none"
-      aria-label={active ? `열기 올리기 (${label})` : `열기 올리기 불가: ${label}`}
+      aria-label={locate ? '현재 위치로 이동' : active ? `열기 올리기 (${label})` : `열기 올리기 불가: ${label}`}
     >
-      {active ? (
+      {locate ? (
+        <>
+          <span className="absolute left-1 top-0 flex h-[68px] w-[68px] items-center justify-center rounded-full border border-[#E9E2DA] bg-white text-[30px] leading-none text-[#B7392D] shadow-[0_4px_10px_rgba(0,0,0,0.12)]">
+            ◎
+          </span>
+          <span className="absolute left-2 top-[65px] flex h-[22px] w-[60px] items-center justify-center rounded-[11px] border-[0.75px] border-[#E9E2DA] bg-white text-[11px] font-bold leading-[15px] text-[#282522]">
+            {label}
+          </span>
+        </>
+      ) : active ? (
         <>
           {ringKey ? (
             <img key={ringKey} src="/figma/heat-tap-ring.svg" alt="" width={78} height={78} className="tap-ring pointer-events-none absolute -left-px -top-[5px]" />
