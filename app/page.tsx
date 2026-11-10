@@ -325,7 +325,7 @@ export default function Home() {
                   className="pointer-events-auto inline-flex h-[30px] items-center gap-1.5 rounded-2xl border border-[#E9E2DA] bg-white px-3 text-[11px] font-bold text-[#282522]"
                   aria-label="열기 모드 끄기"
                 >
-                  <Fire size={14} weight="fill" className="inline-block shrink-0 text-[#D94B35]" aria-hidden="true" />
+                  <Fire size={14} weight="fill" className="inline-block shrink-0 text-[#C2462B]" aria-hidden="true" />
                   {chosenPlace.name}
                   <X size={12} className="text-[#766F69]" aria-hidden="true" />
                 </button>
