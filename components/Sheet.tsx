@@ -3,13 +3,30 @@
 import type { ReactNode } from 'react';
 
 /** 지도 아래에 붙는 하단 시트 (피그마 바텀시트 모양). 페이지가 화면 아래 묶음 안에 넣는다 */
-export default function Sheet({ onClose, maxH = '70vh', children }: { onClose?: () => void; maxH?: string; children: ReactNode }) {
+export default function Sheet({
+  onClose,
+  onCollapse,
+  maxH = '70vh',
+  children,
+}: {
+  onClose?: () => void;
+  /** 있으면 손잡이를 눌러 시트를 접는다 */
+  onCollapse?: () => void;
+  maxH?: string;
+  children: ReactNode;
+}) {
   return (
     <div
       className="pointer-events-auto relative w-full overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-4 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       style={{ maxHeight: maxH }}
     >
-      <div className="mx-auto mb-2 h-1 w-11 rounded-full bg-[#E9E2DA]" />
+      {onCollapse ? (
+        <button type="button" onClick={onCollapse} className="-mt-[9px] mb-1 block w-full pb-1 pt-[9px]" aria-label="시트 접기" aria-expanded={true}>
+          <span className="mx-auto block h-1 w-11 rounded-full bg-[#E9E2DA]" />
+        </button>
+      ) : (
+        <div className="mx-auto mb-2 h-1 w-11 rounded-full bg-[#E9E2DA]" />
+      )}
       {onClose && (
         <button type="button" onClick={onClose} className="absolute right-3 top-2 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
           ×
@@ -26,5 +43,27 @@ export function BandChip({ label, bg, fg }: { label: string; bg: string; fg: str
     <span className="shrink-0 rounded-xl px-2.5 py-0.5 text-[11px] font-bold" style={{ backgroundColor: bg, color: fg }}>
       {label}
     </span>
+  );
+}
+
+/** 접힌 하단 시트: 손잡이 + 한 줄. 누르면 onOpen으로 펼친다 */
+export function SheetPeek({ title, right, onOpen }: { title: ReactNode; right?: ReactNode; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="pointer-events-auto block w-full rounded-t-[20px] bg-white px-[22px] pb-3 pt-[9px] text-left shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+      aria-label="시트 펼치기"
+      aria-expanded={false}
+    >
+      <span className="mx-auto mb-2 block h-1 w-11 rounded-full bg-[#E9E2DA]" />
+      <span className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-[#282522]">{title}</span>
+        {right}
+        <span className="shrink-0 text-xs text-[#766F69]" aria-hidden="true">
+          ⌃
+        </span>
+      </span>
+    </button>
   );
 }
