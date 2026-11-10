@@ -337,7 +337,7 @@ export default function Home() {
             <>
               {/* 오른 온도 말풍선 (SCREEN 13) */}
               <MapOverlay lat={outcome.place.lat} lng={outcome.place.lng} zIndex={400}>
-                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#C2462B] px-2.5 py-[5px] text-xs font-bold text-white">
+                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#B7392D] px-2.5 py-[5px] text-xs font-bold text-white">
                   +{outcome.delta.toFixed(1)}° ↑
                 </span>
               </MapOverlay>
@@ -397,7 +397,7 @@ export default function Home() {
                   className="pointer-events-auto inline-flex h-[30px] items-center gap-1.5 rounded-2xl border border-[#E9E2DA] bg-white px-3 text-[11px] font-bold text-[#282522]"
                   aria-label="열기 모드 끄기"
                 >
-                  <Fire size={14} weight="fill" className="inline-block shrink-0 text-[#C2462B]" aria-hidden="true" />
+                  <Fire size={14} weight="fill" className="inline-block shrink-0 text-[#E64B3B]" aria-hidden="true" />
                   {chosenPlace.name}
                   <X size={12} className="text-[#766F69]" aria-hidden="true" />
                 </button>

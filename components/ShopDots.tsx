@@ -21,7 +21,7 @@ export default function ShopDots({ shops, selectedId, onSelect }: { shops: Shop[
             {/* 보이는 점은 8px, 누르는 영역은 24px */}
             <button type="button" onClick={() => onSelect(id)} aria-label={`${s.name} (아직 열기 없음)`} className="flex h-6 w-6 items-center justify-center">
               <span
-                className={`block rounded-full border-[1.5px] border-white shadow-[0_0_0_1px_rgba(40,37,34,0.2)] ${on ? 'h-3.5 w-3.5 bg-[#C2462B]' : 'h-2 w-2 bg-[#A8A29E]'}`}
+                className={`block rounded-full border-[1.5px] border-white shadow-[0_0_0_1px_rgba(40,37,34,0.2)] ${on ? 'h-3.5 w-3.5 bg-[#E64B3B]' : 'h-2 w-2 bg-[#A8A29E]'}`}
               />
             </button>
           </MapOverlay>

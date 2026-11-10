@@ -7,15 +7,23 @@ import maplibregl from 'maplibre-gl';
 import { useBaseMap } from './BaseMap';
 
 /**
- * 단계별 색 (피그마 변수 heat-stage/1~4, V2 도 단위 기준).
+ * 단계별 색 (발표자료 Branding 장표): 서늘 연한 노랑 · 따뜻 노랑 #F9B637 · 폭염 주황 #F08A42 · 대프리카 다홍 #E64B3B.
  * color: 기본색, text: 진한 글자색, soft: 칩 배경, onColor: 기본색 위 글자색, dot: 알약 마커 안 원 지름
  */
 export const BAND_STYLE: Record<Band, { color: string; text: string; soft: string; onColor: string; dot: number; className: string }> = {
-  mild: { color: '#BBD7E6', text: '#3E5A6A', soft: '#EAF3F8', onColor: '#282522', dot: 24, className: '' },
+  mild: { color: '#FBE2A6', text: '#7A5600', soft: '#FFF7E3', onColor: '#282522', dot: 24, className: '' },
   warm: { color: '#F9B637', text: '#8A5A00', soft: '#FFF1CF', onColor: '#282522', dot: 30, className: '' },
-  hot: { color: '#F18D4D', text: '#9A3F12', soft: '#FDE6D6', onColor: '#282522', dot: 34, className: 'heat-pulse-slow' },
-  daefrica: { color: '#C2462B' /* 피그마 #D94B35를 흰 글씨 대비 4.5:1 이상(4.99)으로 진하게 */, text: '#8F2A1C', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
+  hot: { color: '#F08A42', text: '#9A3F12', soft: '#FDE6D6', onColor: '#282522', dot: 34, className: 'heat-pulse-slow' },
+  daefrica: { color: '#E64B3B', text: '#B7392D', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
 };
+
+/** 이 온도 이하면 '데이터 없음' (최근 30분 반응도, 일정·인기 보너스도 없는 곳 = 기본 10°) */
+export const NO_DATA_TEMP = 10;
+/** 데이터 없음은 회색 (발표자료: 데이터 없음과 낮은 열기를 구분) */
+export const NO_DATA_STYLE = { ...BAND_STYLE.mild, color: '#CFCAC4', text: '#6B6560', soft: '#F1EFEC' };
+
+/** 화면에 칠할 색: 데이터가 없으면 회색, 아니면 단계 색 */
+export const heatStyle = (band: Band, temp: number) => (temp <= NO_DATA_TEMP ? NO_DATA_STYLE : BAND_STYLE[band]);
 
 /** 지도 위 좌표에 React 요소를 띄우는 마커 */
 export function MapOverlay({ lat, lng, zIndex = 1, children }: { lat: number; lng: number; zIndex?: number; children: ReactNode }) {
@@ -50,7 +58,7 @@ type Props = { lat: number; lng: number; name: string; temp: number; band: Band;
  * compact: 이름 없이 온도 원만 (이름표가 겹칠 때) / mini: 숫자 없는 작은 점 (멀리서 본 서늘한 곳)
  */
 export default function HeatMarker({ lat, lng, name, temp, band, selected, compact, mini, onClick }: Props) {
-  const s = BAND_STYLE[band];
+  const s = heatStyle(band, temp);
   const mild = band === 'mild';
   const dotStyle = {
     width: s.dot,

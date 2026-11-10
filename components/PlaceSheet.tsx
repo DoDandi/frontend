@@ -8,7 +8,7 @@ import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { HEAT_RADIUS_BY_CATEGORY } from '@/lib/constants';
 import type { Post } from '@/lib/posts';
 import HeatFab from './HeatFab';
-import { BAND_STYLE } from './HeatMarker';
+import { heatStyle } from './HeatMarker';
 import Sheet from './Sheet';
 
 export type PlaceDetail = {
@@ -78,7 +78,7 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
     );
   }
 
-  const s = BAND_STYLE[p.band];
+  const s = heatStyle(p.band, p.temp);
   const vs = p.vsBaseline;
   const peers = p.peers30m ?? p.peersNow;
   const hot = p.band === 'hot' || p.band === 'daefrica';
@@ -100,7 +100,7 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
 
       <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-2xl bg-[#F6F4F1] px-4 py-3.5">
         <Stat label="현재 열기" value={`${Math.round(p.temp)}°`} color={s.text} />
-        <Stat label="평소 대비" value={vs == null ? '—' : `${vs >= 0 ? '+' : '−'}${Math.abs(Math.round(vs))}°`} color="#C2462B" />
+        <Stat label="평소 대비" value={vs == null ? '—' : `${vs >= 0 ? '+' : '−'}${Math.abs(Math.round(vs))}°`} color="#B7392D" />
         <Stat label={p.peers30m != null ? '최근 30분' : '지금 참여'} value={`${peers}명`} />
       </div>
       {vs != null && (

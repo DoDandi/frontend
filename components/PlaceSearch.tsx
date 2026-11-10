@@ -3,7 +3,7 @@
 import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_LABEL } from '@/lib/constants';
-import { BAND_STYLE } from './HeatMarker';
+import { heatStyle } from './HeatMarker';
 import type { ZonePlace } from './ZoneLayer';
 
 type Props = { places: ZonePlace[]; zoneName: (id: string | null) => string | null; onSelect: (id: string) => void; onClose: () => void };
@@ -42,7 +42,7 @@ export default function PlaceSearch({ places, zoneName, onSelect, onClose }: Pro
         ) : (
           <ul className="divide-y divide-gray-100">
             {list.map(p => {
-              const s = BAND_STYLE[p.band];
+              const s = heatStyle(p.band, p.temp);
               const zone = zoneName(p.zoneId);
               return (
                 <li key={p.id}>

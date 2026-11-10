@@ -5,7 +5,7 @@ import { DotsThree, Fire, ImageSquare, Info, LockSimple, PencilSimpleLine, Warni
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import DeletePostSheet from '@/components/DeletePostSheet';
-import { BAND_STYLE } from '@/components/HeatMarker';
+import { heatStyle } from '@/components/HeatMarker';
 import { fetcher } from '@/components/PlaceSheet';
 import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
@@ -53,7 +53,7 @@ export default function MePage() {
       ) : (
         <ul className="rounded-2xl border border-[#E9E2DA] bg-white px-[14px] py-1">
           {fp.data.map((f, i) => {
-            const s = f.temp == null ? null : BAND_STYLE[band(f.temp)];
+            const s = f.temp == null ? null : heatStyle(band(f.temp), f.temp);
             return (
               <li key={f.placeId} className={`flex items-center gap-3 py-3 ${i > 0 ? 'border-t border-[#E9E2DA]' : ''}`}>
                 <span
@@ -68,7 +68,7 @@ export default function MePage() {
                     {when(f.lastAt)}에 열기를 올렸어요{f.count > 1 ? ` · ${f.count}회` : ''}
                   </p>
                 </div>
-                <span className="shrink-0 text-[13px] font-bold tabular-nums text-[#C2462B]">+{f.lastDelta.toFixed(1)}°</span>
+                <span className="shrink-0 text-[13px] font-bold tabular-nums text-[#B7392D]">+{f.lastDelta.toFixed(1)}°</span>
               </li>
             );
           })}

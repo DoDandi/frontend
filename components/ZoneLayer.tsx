@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { distanceM } from '@/lib/geo';
-import { BAND_STYLE, MapOverlay } from './HeatMarker';
+import { heatStyle, MapOverlay } from './HeatMarker';
 import { useBaseMap } from './BaseMap';
 import { BandChip, SheetPeek } from './Sheet';
 import SheetGrip from './SheetGrip';
@@ -66,7 +66,7 @@ export function ZoneClouds({ zones }: { zones: ZoneItem[] }) {
       type: 'FeatureCollection' as const,
       features: zones.map(z => ({
         type: 'Feature' as const,
-        properties: { name: z.name, color: BAND_STYLE[z.band].color, text: BAND_STYLE[z.band].text, r: z.radiusM * 1.3, mpp0: metersPerPxAtZoom0(z.lat) },
+        properties: { name: z.name, color: heatStyle(z.band, z.temp).color, text: heatStyle(z.band, z.temp).text, r: z.radiusM * 1.3, mpp0: metersPerPxAtZoom0(z.lat) },
         geometry: { type: 'Point' as const, coordinates: [z.lng, z.lat] },
       })),
     }),
@@ -110,7 +110,7 @@ export function ZoneClouds({ zones }: { zones: ZoneItem[] }) {
 
 export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => void }) {
   const map = useBaseMap();
-  const s = BAND_STYLE[zone.band];
+  const s = heatStyle(zone.band, zone.temp);
   const d = zoneSize(zone.temp);
   const fill = zoneFill(zone.temp);
   const big = d >= 140;
@@ -172,7 +172,7 @@ function PlaceListRow({ p, zoneName, onSelect }: { p: ZonePlace; zoneName?: stri
         <span className="flex shrink-0 flex-col items-end gap-5 pt-[5px]">
           <span
             className="flex h-[30px] min-w-16 items-center justify-center rounded-[15px] px-2 text-xs font-bold text-[#B7392D] tabular-nums"
-            style={{ backgroundColor: `${BAND_STYLE[p.band].color}${BADGE_ALPHA[p.band]}` }}
+            style={{ backgroundColor: `${heatStyle(p.band, p.temp).color}${BADGE_ALPHA[p.band]}` }}
           >
             {p.temp >= 20 && <Fire size={11} weight="fill" className="inline-block shrink-0 mr-0.5 align-[-1px]" aria-hidden="true" />}
             {Math.round(p.temp)}°
@@ -287,7 +287,7 @@ export function ZoneSheet({
   onClose: () => void;
   onSelectPlace: (id: string) => void;
 }) {
-  const s = BAND_STYLE[zone.band];
+  const s = heatStyle(zone.band, zone.temp);
   return (
     <PlaceListSheet
       title={zone.name}

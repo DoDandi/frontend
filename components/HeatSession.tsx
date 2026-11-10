@@ -306,11 +306,11 @@ export default function HeatSession({
                 <br />
                 같은 장소는 {COOLDOWN_MIN}분 후 다시 올릴 수 있어요.
               </p>
-              <p className="mt-2 text-[30px] font-bold leading-9 tabular-nums text-[#C2462B]">
+              <p className="mt-2 text-[30px] font-bold leading-9 tabular-nums text-[#E64B3B]">
                 {fmtLeft(cooldownLeft).padStart(5, '0')} <span className="text-xs font-medium text-[#766F69]">남음</span>
               </p>
               <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-[#F6F4F1]">
-                <span className="block h-full rounded-full bg-[#C2462B]" style={{ width: `${(1 - cooldownLeft / (COOLDOWN_MIN * 60_000)) * 100}%` }} />
+                <span className="block h-full rounded-full bg-[#E64B3B]" style={{ width: `${(1 - cooldownLeft / (COOLDOWN_MIN * 60_000)) * 100}%` }} />
               </span>
               {suggest && (
                 <button type="button" onClick={() => onSuggest(suggest.id)} className="mt-2.5 text-left text-[11px] font-medium text-[#B7392D]">
