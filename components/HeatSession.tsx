@@ -45,6 +45,7 @@ export default function HeatSession({
   onNoLocation,
   suggest,
   onSuggest,
+  fabOnly = false,
 }: {
   site: SiteState;
   fixRef: RefObject<Fix | null>;
@@ -55,13 +56,18 @@ export default function HeatSession({
    * placeId: 저장된 장소 id / sentId: 보낸 id (주변 가게였으면 'kakao:…', 처음 열기로 저장되면 둘이 다르다)
    */
   onSent: (result: HeatApiResult, placeId: string, sentId: string) => void;
-  /** 현장 밖에서 누르면 반경 밖 안내(SCREEN 20)를 연다 */
-  onOffSite: () => void;
+  /**
+   * 현장 밖에서 누르면 반경 밖 안내(SCREEN 20)를 연다.
+   * 서버가 403 TOO_FAR로 거절했을 때는 서버가 잰 거리·반경을 함께 넘긴다
+   */
+  onOffSite: (server?: { placeId: string; distanceM: number; radiusM: number }) => void;
   /** 위치를 못 받았을 때 (위치 권한 안내 카드, SCREEN 22) */
   onNoLocation: () => void;
   /** 쿨다운 중에 추천할 다른 장소 (SCREEN 19) */
   suggest: { id: string; name: string; temp: number } | null;
   onSuggest: (placeId: string) => void;
+  /** 반경 밖 시트가 열려 있을 때: 불꽃 버튼('현장 밖')만 보이고 칩·카드는 숨긴다 (SCREEN 20) */
+  fabOnly?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [taps, setTaps] = useState(0);
@@ -139,12 +145,17 @@ export default function HeatSession({
         message = `${Math.ceil(body.retryAfterSec / 60)}분 뒤에 다시 올릴 수 있어요`;
       } else if (body.error === 'LOW_ACCURACY') message = `위치 오차가 커요 (${body.accuracyM}m). 하늘이 보이는 곳에서 다시 해 주세요`;
       else if (body.error === 'INVALID' && target.id.startsWith(SHOP_ID_PREFIX)) message = `${target.name} 정보를 확인하지 못했어요. 가게 가까이에서 다시 해 주세요`;
-      else if (body.error === 'TOO_FAR') message = `${target.name} ${body.radiusM}m 안에서만 올릴 수 있어요 (지금 ${body.distanceM}m)`;
+      else if (body.error === 'TOO_FAR') {
+        // 화면에선 반경 안이었는데 서버가 멀다고 거절한 경우 (GPS가 튐) → 반경 밖 안내 시트로 (SCREEN 20)
+        setPhase({ kind: 'idle' });
+        onOffSite({ placeId: target.id, distanceM: body.distanceM, radiusM: body.radiusM });
+        return;
+      }
       setPhase({ kind: 'error', message });
     } catch {
       setPhase({ kind: 'error', message: '네트워크 연결을 확인해 주세요' });
     }
-  }, [fixRef, onSent, setCooldown]);
+  }, [fixRef, onSent, onOffSite, setCooldown]);
 
   // 쿨다운 안내 카드는 잠시 보여 주고 닫는다
   useEffect(() => {
@@ -249,7 +260,7 @@ export default function HeatSession({
   return (
     <>
       <div className="pointer-events-none flex items-end justify-between gap-2 pl-[22px] pr-[25px]">
-        <div className="flex min-w-0 flex-col items-start gap-[13px] pb-2.5">
+        <div className={`flex min-w-0 flex-col items-start gap-[13px] pb-2.5 ${fabOnly ? 'invisible' : ''}`}>
           {/* 현장 인증 칩 */}
           {site.status === 'choose' && phase.kind === 'idle' ? (
             <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
