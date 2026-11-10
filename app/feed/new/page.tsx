@@ -73,6 +73,13 @@ function NewPost() {
         setNeedLogin(true);
         return;
       }
+      if (r.status === 429) {
+        // 같은 장소는 30분에 1개 (서버가 남은 시간을 알려 준다)
+        const body = await r.json().catch(() => ({}));
+        const min = Math.max(1, Math.ceil((Number(body.retryAfterSec) || 60) / 60));
+        setMessage(`이 장소에는 방금 기록을 남겼어요. ${min}분 뒤에 다시 남길 수 있어요.`);
+        return;
+      }
       setMessage(
         r.status === 403
             ? '이 장소를 방문한 사람만 글을 남길 수 있어요.'
