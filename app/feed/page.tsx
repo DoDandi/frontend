@@ -4,6 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import FilterChips from '@/components/FilterChips';
 import PostCard from '@/components/PostCard';
+import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
 import { POLL_MS, type Group } from '@/lib/constants';
 import { samplePosts, type Post } from '@/lib/posts';
@@ -76,23 +77,13 @@ export default function FeedPage() {
         {isLoading ? (
           <p className="py-16 text-center text-sm text-[#766F69]">불러오는 중…</p>
         ) : error ? (
-          <div className="py-16 text-center text-sm text-[#766F69]">
-            <p>피드를 불러오지 못했어요</p>
-            <button type="button" onClick={() => mutate()} className="mt-3 rounded-full border border-[#E9E2DA] px-4 py-2 text-xs font-bold text-[#282522]">
-              다시 시도
-            </button>
-          </div>
+          <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => mutate() }} />
         ) : posts && posts.length === 0 ? (
-          <div className="py-16 text-center text-sm leading-6 text-[#766F69]">
-            {term ? (
-              <p>&lsquo;{q.trim()}&rsquo;에 맞는 게시글이 없어요</p>
-            ) : (
-              <>
-                <p>아직 남겨진 순간이 없어요</p>
-                <p className="text-xs">지도에서 장소를 골라 첫 기록을 남겨 보세요</p>
-              </>
-            )}
-          </div>
+          term ? (
+            <StateCard icon="🔍" title={`‘${q.trim()}’에 맞는 게시글이 없어요`} body="다른 장소 이름이나 낱말로 찾아 보세요" />
+          ) : (
+            <StateCard icon="🍃" title="아직 남겨진 순간이 없어요" body="지도에서 장소를 골라 첫 기록을 남겨 보세요" action={{ label: '지도 보기', href: '/' }} />
+          )
         ) : (
           <div className="flex flex-col gap-[15px]">
             {posts?.map(p => (
