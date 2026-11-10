@@ -1,6 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { CaretUp, X } from '@phosphor-icons/react/dist/ssr';
+import { useRef, type ReactNode } from 'react';
+import SheetGrip from './SheetGrip';
 
 /** 지도 아래에 붙는 하단 시트 (피그마 바텀시트 모양). 페이지가 화면 아래 묶음 안에 넣는다 */
 export default function Sheet({
@@ -15,21 +17,19 @@ export default function Sheet({
   maxH?: string;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   return (
     <div
-      className="pointer-events-auto relative w-full overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-4 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+      ref={ref}
+      className="sheet-in pointer-events-auto relative w-full overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-4 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       style={{ maxHeight: maxH }}
     >
-      {onCollapse ? (
-        <button type="button" onClick={onCollapse} className="-mt-[9px] mb-1 block w-full pb-1 pt-[9px]" aria-label="시트 접기" aria-expanded={true}>
-          <span className="mx-auto block h-1 w-11 rounded-full bg-[#E9E2DA]" />
-        </button>
-      ) : (
-        <div className="mx-auto mb-2 h-1 w-11 rounded-full bg-[#E9E2DA]" />
-      )}
+      {/* 손잡이: 아래로 끌면 접기(있으면) 또는 닫기 */}
+      <SheetGrip sheetRef={ref} onDismiss={onCollapse ?? onClose} label={onCollapse ? '시트 접기' : '시트 닫기'} />
+      <div className="mb-2" />
       {onClose && (
-        <button type="button" onClick={onClose} className="absolute right-3 top-2 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
-          ×
+        <button type="button" onClick={onClose} className="absolute right-2 top-1.5 z-10 p-2.5 text-[#766F69]" aria-label="닫기">
+          <X size={20} aria-hidden="true" />
         </button>
       )}
       {children}
@@ -60,9 +60,7 @@ export function SheetPeek({ title, right, onOpen }: { title: ReactNode; right?: 
       <span className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-[#282522]">{title}</span>
         {right}
-        <span className="shrink-0 text-xs text-[#766F69]" aria-hidden="true">
-          ⌃
-        </span>
+        <CaretUp size={16} className="shrink-0 text-[#766F69]" aria-hidden="true" />
       </span>
     </button>
   );

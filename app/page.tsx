@@ -1,5 +1,6 @@
 'use client';
 
+import { Fire, MagnifyingGlass, MapPin, WarningCircle, X } from '@phosphor-icons/react/dist/ssr';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import BandLegend from '@/components/BandLegend';
@@ -10,7 +11,7 @@ import FilterChips from '@/components/FilterChips';
 import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
 import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession';
 import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/OutOfRange';
-import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
+import { MapOverlay, PlaceMarkers } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { SheetPeek } from '@/components/Sheet';
@@ -208,14 +209,14 @@ export default function Home() {
       <header className="flex shrink-0 flex-col gap-1.5 px-[17px] pb-2 pt-[max(env(safe-area-inset-top),10px)]">
         <div className="flex h-10 items-center gap-2 pl-1.5">
           <h1 className="text-xl font-bold leading-7 text-[#282522]">열기지도</h1>
-          <p className="flex-1 whitespace-pre text-[11px] font-medium text-[#766F69]">{'●  5초마다 갱신'}</p>
+          <span className="flex-1" />
           <button
             type="button"
             onClick={() => setSearching(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F6F4F1] text-[19px] font-medium leading-[30px] text-[#282522]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F6F4F1] text-[#282522]"
             aria-label="장소 검색"
           >
-            ⌕
+            <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />
           </button>
         </div>
         <FilterChips
@@ -249,29 +250,23 @@ export default function Home() {
                 }}
               />
             ))}
-          {!showZones &&
-            visiblePlaces?.map(p => (
-              <HeatMarker
-                key={p.id}
-                lat={p.lat}
-                lng={p.lng}
-                name={p.name}
-                temp={p.temp}
-                band={p.band}
-                selected={p.id === selected}
-                onClick={() => {
-                  setCourse(null);
-                  setSelected(p.id);
-                }}
-              />
-            ))}
+          {!showZones && visiblePlaces && (
+            <PlaceMarkers
+              places={visiblePlaces}
+              selectedId={selected}
+              onSelect={id => {
+                setCourse(null);
+                setSelected(id);
+              }}
+            />
+          )}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
           {offSite && fix && <OutOfRangeOverlay info={offSite} me={fix} />}
           {outcome && (
             <>
               {/* 오른 온도 말풍선 (SCREEN 13) */}
               <MapOverlay lat={outcome.place.lat} lng={outcome.place.lng} zIndex={400}>
-                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#EC5B38] px-2.5 py-[5px] text-xs font-bold text-white">
+                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#C2462B] px-2.5 py-[5px] text-xs font-bold text-white">
                   +{outcome.delta.toFixed(1)}° ↑
                 </span>
               </MapOverlay>
@@ -300,13 +295,13 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
           {placesError && !places && (
             <div className="px-[17px] pb-3">
-              <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => refreshPlaces() }} />
+              <StateCard tone="error" icon={<WarningCircle size={22} />} title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => refreshPlaces() }} />
             </div>
           )}
           {geoCard && !fix && (
             <div className="px-[17px] pb-3">
               <StateCard
-                icon="📍"
+                icon={<MapPin size={22} />}
                 title="위치 권한이 필요해요"
                 body="열기 올리기는 현장 반경 안에서만 할 수 있어요. 지도는 그대로 볼 수 있어요"
                 action={{ label: '위치 다시 확인', onClick: recheckLocation }}
@@ -330,8 +325,9 @@ export default function Home() {
                   className="pointer-events-auto inline-flex h-[30px] items-center gap-1.5 rounded-2xl border border-[#E9E2DA] bg-white px-3 text-[11px] font-bold text-[#282522]"
                   aria-label="열기 모드 끄기"
                 >
-                  🔥 {chosenPlace.name}
-                  <span className="font-normal text-[#766F69]">✕</span>
+                  <Fire size={14} weight="fill" className="inline-block shrink-0 text-[#D94B35]" aria-hidden="true" />
+                  {chosenPlace.name}
+                  <X size={12} className="text-[#766F69]" aria-hidden="true" />
                 </button>
               </div>
             <HeatSession
@@ -404,7 +400,7 @@ export default function Home() {
                 <div className="flex h-8 items-center justify-between">
                   <span className="text-[17px] font-bold leading-[25px] text-[#282522]">지금 뜨거운 곳</span>
                   <span className="flex h-8 min-w-[76px] items-center justify-center rounded-2xl bg-[#FCE8E1] px-2 text-[11px] font-medium leading-4 text-[#B7392D]">
-                    {hottestZone.band === 'hot' || hottestZone.band === 'daefrica' ? '🔥 ' : ''}
+                    {(hottestZone.band === 'hot' || hottestZone.band === 'daefrica') && <Fire size={12} weight="fill" className="mr-0.5" aria-hidden="true" />}
                     {BAND_LABEL[hottestZone.band]}
                   </span>
                 </div>
@@ -414,7 +410,9 @@ export default function Home() {
                 </div>
                 <p className="mt-1.5 whitespace-pre text-xs leading-[17px] text-[#766F69]">
                   {hottestZone.vsBaseline != null
-                    ? `${vsText(hottestZone.vsBaseline)}  ·  최근 30분 ${hottestZone.peers30m ?? 0}명 참여`
+                    ? hottestZone.peers30m
+                      ? `${vsText(hottestZone.vsBaseline)} · 최근 30분 ${hottestZone.peers30m}명 참여`
+                      : '아직 조용해요. 첫 열기를 올려 보세요'
                     : `${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
                 </p>
               </button>

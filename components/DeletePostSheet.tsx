@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { Trash } from '@phosphor-icons/react/dist/ssr';
+import { useRef, useState } from 'react';
+import SheetGrip from './SheetGrip';
 import { authHeaders } from '@/lib/auth';
 import { timeAgo, type Post } from '@/lib/posts';
 
 /** 내 글 관리 시트 (피그마 SCREEN 21). 삭제하면 onDeleted */
 export default function DeletePostSheet({ post, onClose, onDeleted }: { post: Post; onClose: () => void; onDeleted: () => void }) {
   const [busy, setBusy] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const remove = async () => {
     setBusy(true);
@@ -22,16 +25,16 @@ export default function DeletePostSheet({ post, onClose, onDeleted }: { post: Po
     }
   };
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/45" role="dialog" aria-modal="true" aria-label="내 글 관리">
+    <div className="backdrop-in fixed inset-0 z-50 flex flex-col justify-end bg-black/45" role="dialog" aria-modal="true" aria-label="내 글 관리">
       <button type="button" className="flex-1" onClick={onClose} aria-label="닫기" />
-      <div className="rounded-t-3xl bg-white px-[22px] pb-[max(env(safe-area-inset-bottom),16px)] pt-2.5">
-        <div className="mx-auto h-1 w-11 rounded-sm bg-[#E9E2DA]" />
+      <div ref={sheetRef} className="sheet-in relative rounded-t-3xl bg-white px-[22px] pb-[max(env(safe-area-inset-bottom),16px)] pt-2.5">
+        <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
         <p className="mt-4 text-[17px] font-bold text-[#282522]">내 글 관리</p>
         <p className="mt-1 text-xs text-[#766F69]">
           {post.placeName} · {timeAgo(post.createdAt)}에 올린 글
         </p>
         <button type="button" onClick={remove} disabled={busy} className="mt-3 flex h-12 w-full items-center gap-3 text-[15px] font-bold text-[#B33E29] disabled:opacity-50">
-          <span aria-hidden="true">🗑️</span>
+          <Trash size={20} aria-hidden="true" />
           {busy ? '지우는 중…' : '게시물 삭제'}
         </button>
         <p className="border-t border-[#E9E2DA] pt-3 text-[11px] text-[#766F69]">삭제하면 사진과 글이 모두 사라지고 되돌릴 수 없어요</p>

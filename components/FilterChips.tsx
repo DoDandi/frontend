@@ -10,7 +10,7 @@ export default function FilterChips({ value, onChange }: Props) {
     ...GROUPS.map(g => ({ key: g, label: GROUP_LABEL[g] })),
   ];
   return (
-    <div className="flex h-9 items-center justify-center gap-2 overflow-x-auto [scrollbar-width:none]">
+    <div className="flex h-9 items-center justify-start gap-2 overflow-x-auto [scrollbar-width:none]">
       {items.map(it => {
         const active = value === it.key;
         return (

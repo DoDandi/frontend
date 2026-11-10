@@ -73,7 +73,7 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        className="absolute left-2 top-2 z-30 rounded bg-white/75 px-1.5 text-[9px] leading-4 text-gray-600"
+        className="absolute left-2 top-2 z-30 rounded bg-white/75 px-1.5 text-[10px] leading-4 text-gray-700"
       >
         {MAP_ATTRIBUTION}
       </a>
@@ -82,14 +82,14 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
   );
 }
 
-/** 선택한 장소로 지도를 옮긴다. 장소 마커가 보이도록 확대하고, 하단 시트에 가리지 않게 화면 위쪽에 둔다 */
+/** 선택한 장소로 지도를 옮긴다. 장소 마커가 보이도록 확대하고, 하단 시트(최대 62%)에 가리지 않게 화면 위쪽에 둔다 */
 export function MapFocus({ target, zoom }: { target: { lat: number; lng: number } | null; zoom: number }) {
   const map = useBaseMap();
   const lat = target?.lat;
   const lng = target?.lng;
   useEffect(() => {
     if (!map || lat == null || lng == null) return;
-    map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), zoom), offset: [0, -Math.round(map.getContainer().offsetHeight * 0.25)] });
+    map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), zoom), offset: [0, -Math.round(map.getContainer().offsetHeight * 0.36)] });
   }, [map, lat, lng, zoom]);
   return null;
 }

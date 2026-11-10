@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 const TONE = {
   empty: 'bg-[#F6F4F1]',
@@ -17,7 +18,7 @@ export default function StateCard({
   action,
 }: {
   tone?: keyof typeof TONE;
-  icon: string;
+  icon: ReactNode;
   title: string;
   body?: string;
   action?: Action;
@@ -25,7 +26,7 @@ export default function StateCard({
   const btn = 'mt-1 rounded-[10px] border border-[#E9E2DA] bg-white px-3 py-1.5 text-xs font-bold text-[#B33E29]';
   return (
     <div className={`pointer-events-auto flex w-full gap-3 rounded-2xl p-[14px] text-left ${TONE[tone]}`} role={tone === 'empty' ? undefined : 'alert'}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-lg" aria-hidden="true">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#766F69]" aria-hidden="true">
         {icon}
       </span>
       <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
