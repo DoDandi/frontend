@@ -119,7 +119,7 @@ function NewPost() {
             <>
               <p className="truncate text-[15px] font-bold leading-[22px]"><MapPin size={16} weight="fill" className="mr-1 inline-block align-[-2px] text-[#B7392D]" aria-hidden="true" />
                 {place?.name ?? '불러오는 중…'}</p>
-              <p className="text-[11px] leading-4 text-[#766F69]">열기 지도에서 선택된 장소</p>
+              <p className="text-[11px] leading-4 text-[#766F69]">열기단디도에서 선택된 장소</p>
             </>
           )}
         </div>

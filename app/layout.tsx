@@ -6,7 +6,7 @@ import './globals.css';
 const noto = Noto_Sans_KR({ subsets: ['latin'], display: 'swap', preload: false, variable: '--font-noto' });
 
 export const metadata: Metadata = {
-  title: '열기지도',
+  title: '열기단디도',
   description: '대구 원도심, 지금 살아 있는 현장을 온도로',
 };
 

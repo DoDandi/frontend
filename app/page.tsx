@@ -266,7 +266,7 @@ export default function Home() {
       {/* 지도를 넓게 보이도록 제목·갱신 표시를 한 줄로 (휴대폰 기준 약 100px) */}
       <header className="flex shrink-0 flex-col gap-1.5 px-[17px] pb-2 pt-[max(env(safe-area-inset-top),10px)]">
         <div className="flex h-10 items-center gap-2 pl-1.5">
-          <h1 className="text-xl font-bold leading-7 text-[#282522]">열기지도</h1>
+          <h1 className="text-xl font-bold leading-7 text-[#282522]">열기단디도</h1>
           <span className="flex-1" />
           <button
             type="button"
