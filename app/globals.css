@@ -52,3 +52,16 @@ body {
   .flame-float { animation-duration: 0.6s; }
   .tap-ring { animation: none; opacity: 0; }
 }
+
+/* 하단 시트: 아래에서 올라온다 (iOS 서랍 곡선). 끌어서 닫기는 SheetGrip이 transform을 직접 옮긴다 */
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+@keyframes sheet-fade {
+  from { opacity: 0; }
+}
+.sheet-in { animation: sheet-in 300ms cubic-bezier(0.32, 0.72, 0, 1); }
+.backdrop-in { animation: sheet-fade 200ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-in { animation: sheet-fade 150ms ease-out; }
+}

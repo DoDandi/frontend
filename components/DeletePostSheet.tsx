@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import SheetGrip from './SheetGrip';
 import { authHeaders } from '@/lib/auth';
 import { timeAgo, type Post } from '@/lib/posts';
 
 /** 내 글 관리 시트 (피그마 SCREEN 21). 삭제하면 onDeleted */
 export default function DeletePostSheet({ post, onClose, onDeleted }: { post: Post; onClose: () => void; onDeleted: () => void }) {
   const [busy, setBusy] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const remove = async () => {
     setBusy(true);
@@ -22,10 +24,10 @@ export default function DeletePostSheet({ post, onClose, onDeleted }: { post: Po
     }
   };
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/45" role="dialog" aria-modal="true" aria-label="내 글 관리">
+    <div className="backdrop-in fixed inset-0 z-50 flex flex-col justify-end bg-black/45" role="dialog" aria-modal="true" aria-label="내 글 관리">
       <button type="button" className="flex-1" onClick={onClose} aria-label="닫기" />
-      <div className="rounded-t-3xl bg-white px-[22px] pb-[max(env(safe-area-inset-bottom),16px)] pt-2.5">
-        <div className="mx-auto h-1 w-11 rounded-sm bg-[#E9E2DA]" />
+      <div ref={sheetRef} className="sheet-in relative rounded-t-3xl bg-white px-[22px] pb-[max(env(safe-area-inset-bottom),16px)] pt-2.5">
+        <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
         <p className="mt-4 text-[17px] font-bold text-[#282522]">내 글 관리</p>
         <p className="mt-1 text-xs text-[#766F69]">
           {post.placeName} · {timeAgo(post.createdAt)}에 올린 글

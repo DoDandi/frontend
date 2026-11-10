@@ -2,7 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- 피그마에서 받은 작은 SVG를 그대로 쓴다 */
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import SheetGrip from './SheetGrip';
 import { BAND_LABEL, band } from '@/lib/temperature';
 import type { Course } from './CourseLayer';
 import { BAND_STYLE } from './HeatMarker';
@@ -35,9 +36,10 @@ export function HeatResultSheet({
 }) {
   const { place, tempBefore, tempAfter, delta, peers } = outcome;
   const b = band(tempAfter);
+  const sheetRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="pointer-events-auto relative flex max-h-[75vh] w-full flex-col gap-[14px] overflow-y-auto rounded-t-3xl bg-white px-[22px] pb-[26px] pt-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
-      <div className="mx-auto h-1 w-11 shrink-0 rounded-sm bg-[#E9E2DA]" />
+    <div ref={sheetRef} className="sheet-in pointer-events-auto relative flex max-h-[75vh] w-full flex-col gap-[14px] overflow-y-auto rounded-t-3xl bg-white px-[22px] pb-[26px] pt-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+      <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
       <div className="flex items-center gap-2">
         <p className="flex-1 text-xl font-bold text-[#282522]">🔥 열기를 올렸어요!</p>
         <span className="rounded-[14px] bg-[#FCE8E1] px-2.5 py-[5px] text-[11px] font-bold text-[#B33E29]">{BAND_LABEL[b]}</span>
