@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import SheetGrip from './SheetGrip';
 import { OVERLAY_BEFORE } from '@/lib/mapStyle';
 import { useBaseMap } from './BaseMap';
 import { MapOverlay } from './HeatMarker';
@@ -70,10 +71,11 @@ export function OutOfRangeSheet({ info, onRecheck, onClose }: { info: OffSite; o
   const more = Math.max(0, distanceM - radiusM);
   const progress = Math.min(1, radiusM / Math.max(distanceM, 1));
   const kakaoRoute = `https://map.kakao.com/link/to/${encodeURIComponent(place.name)},${place.lat},${place.lng}`;
+  const sheetRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="pointer-events-auto relative w-full rounded-t-3xl bg-white px-[22px] pb-5 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-      <div className="mx-auto h-1 w-11 rounded-sm bg-[#E9E2DA]" />
-      <button type="button" onClick={onClose} className="absolute right-3 top-2 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
+    <div ref={sheetRef} className="sheet-in pointer-events-auto relative w-full rounded-t-3xl bg-white px-[22px] pb-5 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+      <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
+      <button type="button" onClick={onClose} className="absolute right-3 top-2 z-10 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
         ×
       </button>
       <div className="mt-4 flex items-center justify-between gap-2 pr-8">

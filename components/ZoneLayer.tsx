@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { distanceM } from '@/lib/geo';
 import { BAND_STYLE, MapOverlay } from './HeatMarker';
 import { useBaseMap } from './BaseMap';
 import { BandChip, SheetPeek } from './Sheet';
+import SheetGrip from './SheetGrip';
 
 export type ZoneItem = {
   id: string;
@@ -162,6 +163,7 @@ export function PlaceListSheet({
     onOpenChange?.(v);
   };
   const [sort, setSort] = useState<'temp' | 'distance'>('temp');
+  const sheetRef = useRef<HTMLDivElement>(null);
   const dist = (p: ZonePlace) => (origin && p.lat != null && p.lng != null ? distanceM(origin, { lat: p.lat, lng: p.lng }) : Infinity);
   const list = [...places].sort((a, b) => (sort === 'distance' ? dist(a) - dist(b) : b.temp - a.temp));
 
@@ -186,11 +188,9 @@ export function PlaceListSheet({
   };
 
   return (
-    <div className="pointer-events-auto relative flex max-h-[68vh] w-full flex-col rounded-t-3xl bg-white px-[22px] pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-      <button type="button" onClick={() => (defaultOpen && onClose ? onClose() : setOpen(false))} className="absolute left-1/2 top-0 h-6 w-24 -translate-x-1/2" aria-label="목록 접기">
-        <span className="mx-auto mt-[9px] block h-[5px] w-12 rounded-[3px] bg-[#E9E2DA]" />
-      </button>
-      <div className="mt-[15px] flex items-center justify-between gap-2">
+    <div ref={sheetRef} className="sheet-in pointer-events-auto relative flex max-h-[68vh] w-full flex-col rounded-t-3xl bg-white px-[22px] pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      <SheetGrip sheetRef={sheetRef} onDismiss={() => (defaultOpen && onClose ? onClose() : setOpen(false))} label="목록 접기" />
+      <div className="mt-[11px] flex items-center justify-between gap-2">
         <h2 className="truncate text-[22px] font-bold leading-8 text-[#282522]">{title}</h2>
         {badge && (
           <span className="flex h-[31px] shrink-0 items-center rounded-2xl bg-[#FCE8E1] px-3 text-[11px] font-bold text-[#B7392D]">{badge.label}</span>
