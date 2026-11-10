@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import SheetGrip from './SheetGrip';
 import { BAND_LABEL, band } from '@/lib/temperature';
 import type { Course } from './CourseLayer';
-import { BAND_STYLE } from './HeatMarker';
+import { heatStyle } from './HeatMarker';
 
 export type HeatOutcome = {
   place: { id: string; name: string; lat: number; lng: number };
@@ -43,7 +43,7 @@ export function HeatResultSheet({
       <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
       <div className="flex items-center gap-2">
         <p className="flex flex-1 items-center gap-1.5 text-xl font-bold text-[#282522]">
-          <Fire size={20} weight="fill" className="inline-block shrink-0 text-[#C2462B]" aria-hidden="true" />
+          <Fire size={20} weight="fill" className="inline-block shrink-0 text-[#E64B3B]" aria-hidden="true" />
           열기를 올렸어요!
         </p>
         <span className="rounded-[14px] bg-[#FCE8E1] px-2.5 py-[5px] text-[11px] font-bold text-[#B33E29]">{BAND_LABEL[b]}</span>
@@ -94,7 +94,7 @@ export function HeatResultSheet({
                   도보 {Math.max(1, Math.round(s.distanceM / WALK_M_PER_MIN))}분 · {s.distanceM}m
                 </span>
               </span>
-              <span className="shrink-0 rounded-[14px] px-2.5 py-[5px] text-[11px] font-bold text-[#282522]" style={{ backgroundColor: BAND_STYLE[sb].color, color: BAND_STYLE[sb].onColor }}>
+              <span className="shrink-0 rounded-[14px] px-2.5 py-[5px] text-[11px] font-bold text-[#282522]" style={{ backgroundColor: heatStyle(sb, s.temp).color, color: heatStyle(sb, s.temp).onColor }}>
                 {(sb === 'hot' || sb === 'daefrica') && <Fire size={12} weight="fill" className="inline-block shrink-0 mr-0.5 align-[-1px]" aria-hidden="true" />}
                 {Math.round(s.temp)}° {BAND_LABEL[sb]}
               </span>
@@ -128,7 +128,7 @@ export function DaefricaOverlay({ outcome, onNext }: { outcome: HeatOutcome; onN
   }, []);
   const wave = 'pointer-events-none absolute whitespace-nowrap text-[28px] font-bold text-white';
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-[linear-gradient(180deg,rgba(194,70,43,0.96)_0%,rgba(236,91,56,0.94)_60%,rgba(249,182,55,0.94)_100%)]" role="dialog" aria-label="대프리카">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-[linear-gradient(180deg,rgba(230,75,59,0.96)_0%,rgba(240,138,66,0.94)_60%,rgba(249,182,55,0.94)_100%)]" role="dialog" aria-label="대프리카">
       <p className={`${wave} left-[29px] top-[169px] opacity-35`}>〰〰〰</p>
       <p className={`${wave} left-[219px] top-[229px] opacity-30`}>〰〰</p>
       <p className={`${wave} bottom-[175px] left-[59px] opacity-30`}>〰〰〰〰</p>

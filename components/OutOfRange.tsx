@@ -92,7 +92,7 @@ export function OutOfRangeSheet({ info, onRecheck, onClose }: { info: OffSite; o
       <div className="mt-4 flex items-center gap-2 text-[11px] text-[#766F69]">
         <span>나</span>
         <span className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#F6F4F1]">
-          <span className="absolute inset-y-0 left-0 rounded-full bg-[#F18D4D]" style={{ width: `${progress * 100}%` }} />
+          <span className="absolute inset-y-0 left-0 rounded-full bg-[#F08A42]" style={{ width: `${progress * 100}%` }} />
         </span>
         <span className="font-bold text-[#B7392D]">{radiusM}m</span>
       </div>
