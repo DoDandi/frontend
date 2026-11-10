@@ -26,7 +26,7 @@ export default function DevPage() {
         lng: p.lng,
         accuracy: 10, // 테스트용 위치 오차(m)
         taps: 40,
-        shake: 1,
+        shake: null,
       }),
     });
     const body = await res.json();

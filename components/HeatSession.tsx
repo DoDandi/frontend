@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { COOLDOWN_MIN, GPS_MAX_ACCURACY_M, GRAVITY, MAX_TAPS, SHAKE_DIVISOR, TAP_DURATION_SEC } from '@/lib/constants';
+import { COOLDOWN_MIN, GPS_MAX_ACCURACY_M, MAX_TAPS, TAP_DURATION_SEC } from '@/lib/constants';
 import { getDeviceId } from '@/lib/device';
 import HeatFab from './HeatFab';
 
@@ -15,7 +15,6 @@ export type SiteState =
 
 export type HeatApiResult = { tempBefore: number; tempAfter: number; delta: number; peers: number };
 type Phase = { kind: 'idle' } | { kind: 'tapping' } | { kind: 'sending' } | { kind: 'error'; message: string };
-type MotionPermission = { requestPermission?: () => Promise<'granted' | 'denied'> };
 
 const COOLDOWN_KEY = 'yeolgi-heat-cooldown';
 const readCooldowns = (): Record<string, number> => {
@@ -32,7 +31,7 @@ const fmtLeft = (ms: number) => {
 
 /**
  * 지도 위 열기 올리기 (피그마 SCREEN 05·06). V앱 하트처럼 불꽃 버튼을 누른다.
- * 첫 터치로 10초가 시작되고, 그동안 누른 횟수와 흔들기를 함께 센 뒤 POST /api/heat.
+ * 첫 터치로 10초가 시작되고, 그동안 누른 횟수를 센 뒤 POST /api/heat.
  */
 export default function HeatSession({
   site,
@@ -70,7 +69,6 @@ export default function HeatSession({
 
   const tapsRef = useRef(0);
   const sessionPlace = useRef<{ id: string; name: string } | null>(null);
-  const shake = useRef({ on: false, sum: 0, n: 0 });
   const flameId = useRef(0);
 
   useEffect(() => setCooldowns(readCooldowns()), []);
@@ -99,27 +97,11 @@ export default function HeatSession({
     setNow(Date.now());
   }, []);
 
-  // 흔들기: 세는 동안만 max(0, |가속도| − 9.8)를 더한다
-  useEffect(() => {
-    const onMotion = (e: DeviceMotionEvent) => {
-      if (!shake.current.on) return;
-      const a = e.accelerationIncludingGravity;
-      if (!a || a.x == null || a.y == null || a.z == null) return;
-      shake.current.sum += Math.max(0, Math.hypot(a.x, a.y, a.z) - GRAVITY);
-      shake.current.n += 1;
-    };
-    window.addEventListener('devicemotion', onMotion);
-    return () => window.removeEventListener('devicemotion', onMotion);
-  }, []);
-
   const send = useCallback(async () => {
-    shake.current.on = false;
     const target = sessionPlace.current;
     const fix = fixRef.current;
     if (!target) return;
     setPhase({ kind: 'sending' });
-    // 흔들기 센서 값이 하나도 없으면 null → 서버가 연타만으로 점수를 매긴다
-    const s = shake.current.n ? Math.min(shake.current.sum / shake.current.n / SHAKE_DIVISOR, 1) : null;
     try {
       const res = await fetch('/api/heat', {
         method: 'POST',
@@ -131,7 +113,7 @@ export default function HeatSession({
           lng: fix?.lng,
           accuracy: fix ? Math.round(fix.accuracy) : undefined,
           taps: Math.min(tapsRef.current, 200),
-          shake: s == null ? null : Math.round(s * 1000) / 1000,
+          shake: null, // 흔들기는 쓰지 않는다 (11/10 결정): 연타만으로 점수
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -196,15 +178,6 @@ export default function HeatSession({
     setRingKey(k => k + 1);
   };
 
-  const requestMotion = () => {
-    const DM = typeof DeviceMotionEvent !== 'undefined' ? (DeviceMotionEvent as unknown as MotionPermission) : null;
-    if (!DM?.requestPermission) return;
-    // iOS는 사용자 동작 안에서만 권한을 물을 수 있다. 실패하면 손을 뗄 때(touchend) 한 번 더 묻는다
-    DM.requestPermission().catch(() =>
-      window.addEventListener('touchend', () => DM.requestPermission?.().catch(() => undefined), { once: true })
-    );
-  };
-
   const press = () => {
     if (phase.kind === 'tapping') {
       tapsRef.current += 1;
@@ -236,9 +209,7 @@ export default function HeatSession({
       return;
     }
     // 첫 터치: 10초 시작
-    requestMotion();
     sessionPlace.current = site.place;
-    shake.current = { on: true, sum: 0, n: 0 };
     tapsRef.current = 1;
     setTaps(1);
     setRemaining(TAP_DURATION_SEC);
@@ -292,7 +263,7 @@ export default function HeatSession({
                 <span className="text-[17px] font-bold leading-6 tabular-nums text-[#E64B3B]">🔥 {taps}회</span>
               </div>
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">
-                {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요! 흔들어도 올라가요' : '반응을 누르면 불꽃이 올라가요!'}
+                {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요!' : '반응을 누르면 불꽃이 올라가요!'}
               </p>
             </div>
           )}
@@ -322,9 +293,6 @@ export default function HeatSession({
               <p className="text-base font-bold leading-6 text-[#282522]">열기를 올리지 못했어요</p>
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">{phase.message}</p>
             </div>
-          )}
-          {phase.kind === 'tapping' && (
-            <span className="inline-flex h-[33px] items-center rounded-2xl bg-white px-3 text-[11px] font-medium leading-[15px] text-[#766F69]">📱 흔들어도 열기가 올라가요</span>
           )}
         </div>
 

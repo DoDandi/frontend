@@ -16,8 +16,6 @@ export const PEERS_NOW_MIN = 5;
 
 // 열기 올리기 화면 (6장)
 export const TAP_DURATION_SEC = 10;
-export const SHAKE_DIVISOR = 15;
-export const GRAVITY = 9.8;
 
 // 타임라인 (6시간, 10분 단위)
 export const TIMELINE_HOURS = 6;
