@@ -29,7 +29,26 @@ export type PlaceDetail = {
   /** 최근 30분 참여 기기 수. 백엔드 추가 예정 */
   peers30m?: number;
   todayPeak: { temp: number; at: string };
+  /** 오늘(KST) 일정: 경기·축제·공연·전시. 시작 1시간 전 ~ 끝까지 bonusActive(열기 +5°) */
+  todaySchedules?: TodaySchedule[];
 };
+
+export type TodaySchedule = { id: string; title: string; kind: string; startsAt: string; endsAt: string; bonusActive: boolean };
+
+const SCHEDULE_KIND_LABEL: Record<string, string> = {
+  baseball: '야구',
+  football: '축구',
+  basketball: '농구',
+  volleyball: '배구',
+  festival: '축제',
+  show: '공연',
+  exhibition: '전시',
+  busking: '버스킹',
+  etc: '행사',
+};
+/** "2026-11-10T19:30:00+09:00" → "19:30" (백엔드가 KST로 준다) */
+const hhmm = (iso: string) => iso.slice(11, 16);
+const SCHEDULE_PREVIEW = 3;
 
 export const fetcher = (url: string) =>
   fetch(url).then(r => {
@@ -92,6 +111,8 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
         </p>
       )}
 
+      {p.todaySchedules && p.todaySchedules.length > 0 && <TodaySchedules list={p.todaySchedules} />}
+
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[15px] font-bold text-[#282522]">현장에 남긴 순간</span>
         <span className="flex gap-3 text-xs">
@@ -124,6 +145,39 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
         <HeatFab active label="열기" onPress={() => onHeat(p.id)} />
       </div>
     </Sheet>
+  );
+}
+
+/** 오늘 일정 (경기·축제·공연·전시). 보너스가 켜진 일정은 '진행 중'/'곧 시작' + 열기 +5° */
+function TodaySchedules({ list }: { list: TodaySchedule[] }) {
+  const now = Date.now();
+  return (
+    <section className="mt-4" aria-label="오늘 일정">
+      <h3 className="text-[15px] font-bold text-[#282522]">오늘 일정</h3>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {list.slice(0, SCHEDULE_PREVIEW).map(e => {
+          const ended = Date.parse(e.endsAt) <= now;
+          const started = Date.parse(e.startsAt) <= now;
+          return (
+            <li key={e.id} className={`flex items-center gap-3 rounded-xl bg-[#F6F4F1] px-3.5 py-2.5 ${ended ? 'opacity-50' : ''}`}>
+              <span className="shrink-0 text-xs font-bold tabular-nums text-[#282522]">
+                {hhmm(e.startsAt)}–{hhmm(e.endsAt)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] text-[#282522]">{e.title}</span>
+                <span className="text-[11px] text-[#766F69]">{SCHEDULE_KIND_LABEL[e.kind] ?? '행사'}</span>
+              </span>
+              {e.bonusActive && (
+                <span className="shrink-0 rounded-lg bg-[#FCE8E1] px-2 py-1 text-[11px] font-bold text-[#B7392D]">
+                  {started ? '진행 중' : '곧 시작'} · +5°
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {list.length > SCHEDULE_PREVIEW && <p className="mt-1.5 text-xs text-[#766F69]">외 {list.length - SCHEDULE_PREVIEW}건</p>}
+    </section>
   );
 }
 
