@@ -31,7 +31,8 @@ export const COURSE_DEFAULT_LIMIT = 3;
 // 지도
 export const DEFAULT_CENTER = { lat: 35.869, lng: 128.596 }; // 동성로 일대
 export const DEFAULT_ZOOM = 13.4;
-export const POLL_MS = 5000;
+/** 지도 갱신 주기. 화면 범위만 받으므로 5초 → 3초. 탭이 숨겨지면 SWR이 멈춘다 */
+export const POLL_MS = 3000;
 
 export const CATEGORIES = ['food', 'cafe', 'market', 'night_market', 'street', 'show', 'festival', 'cheer'] as const;
 export type Category = (typeof CATEGORIES)[number];

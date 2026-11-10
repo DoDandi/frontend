@@ -1,8 +1,8 @@
 'use client';
 
 import { Fire, MagnifyingGlass, MapPin, WarningCircle, X } from '@phosphor-icons/react/dist/ssr';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import useSWR from 'swr';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import BandLegend from '@/components/BandLegend';
 import BaseMap, { MapFlyTo, MapFocus } from '@/components/BaseMap';
 import HeatFab from '@/components/HeatFab';
@@ -32,7 +32,7 @@ import {
   ZONE_ZOOM_THRESHOLD,
   type Group,
 } from '@/lib/constants';
-import { checkOnSite, distanceM } from '@/lib/geo';
+import { aroundBbox, bboxContains, checkOnSite, distanceM, requestBbox } from '@/lib/geo';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 
 type PlaceItem = ZonePlace & { lat: number; lng: number };
@@ -118,7 +118,27 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const { data: places, error: placesError, mutate: refreshPlaces } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
+  // 장소는 필요한 범위만 받는다 (전체를 3초마다 받지 않게)
+  //  - 지도 마커·목록: 지금 화면 범위 / 현장 인증: 내 주변 약 600m / 구역 시트: 그 구역 / 검색: 전체(열 때 한 번)
+  const [viewBbox, setViewBbox] = useState<string | null>(null);
+  const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
+  const live = { refreshInterval: POLL_MS, keepPreviousData: true };
+  const { data: viewPlaces, error: placesError } = useSWR<PlaceItem[]>(!showZones && viewBbox ? `/api/places?bbox=${viewBbox}` : null, fetcher, live);
+  // 화면 범위가 내 주변을 이미 덮으면 따로 받지 않고 화면 범위 결과를 쓴다 (요청 절반)
+  const nearBbox = fix ? aroundBbox(fix) : null;
+  const viewCoversNear = !showZones && !!viewBbox && !!nearBbox && bboxContains(viewBbox, nearBbox);
+  const { data: nearOnly } = useSWR<PlaceItem[]>(nearBbox && !viewCoversNear ? `/api/places?bbox=${nearBbox}` : null, fetcher, live);
+  const nearPlaces = viewCoversNear ? viewPlaces : nearOnly;
+  const { data: zonePlaces } = useSWR<PlaceItem[]>(zoneId ? `/api/places?zone=${zoneId}` : null, fetcher, live);
+  const { data: allPlaces } = useSWR<PlaceItem[]>(searching ? '/api/places' : null, fetcher);
+  const { mutate: mutateAll } = useSWRConfig();
+  const refreshPlaces = () => mutateAll(key => typeof key === 'string' && key.startsWith('/api/places'));
+  // 한 번이라도 받은 장소는 id로 찾을 수 있게 모아 둔다 (고른 장소·결과 시트용, 최신 값이 이긴다)
+  const known = useMemo(() => {
+    const m = new Map<string, PlaceItem>();
+    for (const list of [allPlaces, zonePlaces, nearPlaces, viewPlaces]) list?.forEach(p => m.set(p.id, p));
+    return m;
+  }, [allPlaces, zonePlaces, nearPlaces, viewPlaces]);
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
   const { data: outcomeCourse } = useSWR<Course>(
     outcome ? `/api/course?lat=${outcome.place.lat}&lng=${outcome.place.lng}&limit=2` : null,
@@ -126,20 +146,26 @@ export default function Home() {
   );
 
   // 멀리서 보면 구역, 확대하거나 필터를 고르면 장소 마커
-  const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
-  const visiblePlaces = places?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
+  const visiblePlaces = viewPlaces?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
   const zone = zones?.find(z => z.id === zoneId);
-  const selectedPlace = places?.find(p => p.id === selected) ?? null;
+  const selectedPlace = (selected && known.get(selected)) || null;
+  // 장소가 하나뿐인 구역(경기장·공연장)은 구역 시트 대신 바로 장소 상세를 연다
+  useEffect(() => {
+    if (zoneId && zonePlaces?.length === 1 && zonePlaces[0].zoneId === zoneId) {
+      setZoneId(null);
+      setSelected(zonePlaces[0].id);
+    }
+  }, [zoneId, zonePlaces]);
   // 장소를 누르면 열기 모드: 지도 위 버튼이 ◎ 내 위치 → 🔥 그 장소 열기 올리기로 바뀐다
   useEffect(() => {
     if (selected) setChosenId(selected);
   }, [selected]);
-  const chosenPlace = places?.find(p => p.id === chosenId) ?? null;
+  const chosenPlace = (chosenId && known.get(chosenId)) || null;
   // 현장 인증: 위치 오차 확인 → 장소 종류별 반경 안 후보 → 고른 장소 / 하나뿐인 후보 / 직접 고르기
   const site: SiteState = (() => {
-    if (!fix || !places) return { status: 'no-location' };
+    if (!fix || !nearPlaces) return { status: 'no-location' };
     if (fix.accuracy > GPS_MAX_ACCURACY_M) return { status: 'locating', accuracyM: Math.round(fix.accuracy) };
-    const candidates = (chosenPlace ? [chosenPlace] : places)
+    const candidates = (chosenPlace ? [chosenPlace] : nearPlaces)
       .map(p => ({ p, site: checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M) }))
       .filter(c => c.site.ok)
       .sort((a, b) => a.site.distanceM - b.site.distanceM);
@@ -165,9 +191,10 @@ export default function Home() {
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
     );
   const openOffSite = () => {
-    if (!fix || !places?.length) return;
+    const pool = [...known.values()];
+    if (!fix || !pool.length) return;
     const target =
-      places.find(p => p.id === (selected ?? chosenId)) ?? places.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), places[0]);
+      known.get(selected ?? chosenId ?? '') ?? pool.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), pool[0]);
     setOffSite({
       place: { id: target.id, name: target.name, lat: target.lat, lng: target.lng },
       radiusM: HEAT_RADIUS_BY_CATEGORY[target.category],
@@ -176,7 +203,7 @@ export default function Home() {
   };
   // 쿨다운 중 추천: 지금 인증된 곳을 뺀 가장 뜨거운 곳 (SCREEN 19)
   const certifiedId = site.status === 'ok' ? site.place.id : null;
-  const suggest = places?.filter(p => p.id !== certifiedId).reduce<PlaceItem | null>((a, p) => (!a || p.temp > a.temp ? p : a), null) ?? null;
+  const suggest = (nearPlaces ?? viewPlaces)?.filter(p => p.id !== certifiedId).reduce<PlaceItem | null>((a, p) => (!a || p.temp > a.temp ? p : a), null) ?? null;
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
 
   const showCourse = useCallback(async (from?: LatLng) => {
@@ -230,7 +257,7 @@ export default function Home() {
       </header>
 
       <div className="relative min-h-0 flex-1">
-        <BaseMap className="h-full w-full" onZoomChange={setZoom}>
+        <BaseMap className="h-full w-full" onZoomChange={setZoom} onViewChange={v => setViewBbox(requestBbox(v.bounds))}>
           {showZones &&
             zones?.map(z => (
               <ZoneMarker
@@ -238,15 +265,8 @@ export default function Home() {
                 zone={z}
                 onClick={() => {
                   setCourse(null);
-                  // 장소가 하나뿐인 구역(경기장·공연장)은 바로 장소 상세를 연다
-                  const only = places?.filter(p => p.zoneId === z.id);
-                  if (only?.length === 1) {
-                    setZoneId(null);
-                    setSelected(only[0].id);
-                  } else {
-                    setSelected(null);
-                    setZoneId(z.id);
-                  }
+                  setSelected(null);
+                  setZoneId(z.id);
                 }}
               />
             ))}
@@ -293,7 +313,7 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
-          {placesError && !places && (
+          {placesError && !viewPlaces && (
             <div className="px-[17px] pb-3">
               <StateCard tone="error" icon={<WarningCircle size={22} />} title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => refreshPlaces() }} />
             </div>
@@ -341,7 +361,7 @@ export default function Home() {
               onSuggest={id => setSelected(id)}
               onSent={(r, placeId) => {
                 refreshPlaces();
-                const p = places?.find(x => x.id === placeId);
+                const p = known.get(placeId);
                 if (!p) return;
                 setOutcome({ place: { id: p.id, name: p.name, lat: p.lat, lng: p.lng }, ...r });
                 setShowDaefrica(r.tempAfter >= DAEFRICA_TEMP);
@@ -373,7 +393,7 @@ export default function Home() {
               // 시트를 닫고 지도 위 불꽃 버튼으로 그 장소의 열기를 올린다
               setChosenId(id);
               setSelected(null);
-              const p = places?.find(x => x.id === id);
+              const p = known.get(id);
               if (!p) return;
               if (!fix) return setGeoCard(true);
               const r = checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M);
@@ -382,8 +402,8 @@ export default function Home() {
               else showToast(`${p.name} ${HEAT_RADIUS_BY_CATEGORY[p.category]}m 안에서만 올릴 수 있어요 (지금 ${r.distanceM}m)`);
             }}
           />
-        ) : zone && places ? (
-          <ZoneSheet zone={zone} places={places} onClose={() => setZoneId(null)} onSelectPlace={setSelected} />
+        ) : zone && zonePlaces ? (
+          <ZoneSheet zone={zone} places={zonePlaces} onClose={() => setZoneId(null)} onSelectPlace={setSelected} />
         ) : course ? (
           <CourseCard course={course.data} onClose={() => setCourse(null)} />
         ) : showZones ? (
@@ -444,9 +464,9 @@ export default function Home() {
 
       {outcome && showDaefrica && <DaefricaOverlay outcome={outcome} onNext={() => setShowDaefrica(false)} />}
 
-      {searching && places && (
+      {searching && allPlaces && (
         <PlaceSearch
-          places={places}
+          places={allPlaces}
           zoneName={id => zones?.find(z => z.id === id)?.name ?? null}
           onClose={() => setSearching(false)}
           onSelect={id => {
