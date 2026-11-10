@@ -10,7 +10,7 @@ import FilterChips from '@/components/FilterChips';
 import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
 import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession';
 import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/OutOfRange';
-import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
+import { MapOverlay, PlaceMarkers } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { SheetPeek } from '@/components/Sheet';
@@ -249,22 +249,16 @@ export default function Home() {
                 }}
               />
             ))}
-          {!showZones &&
-            visiblePlaces?.map(p => (
-              <HeatMarker
-                key={p.id}
-                lat={p.lat}
-                lng={p.lng}
-                name={p.name}
-                temp={p.temp}
-                band={p.band}
-                selected={p.id === selected}
-                onClick={() => {
-                  setCourse(null);
-                  setSelected(p.id);
-                }}
-              />
-            ))}
+          {!showZones && visiblePlaces && (
+            <PlaceMarkers
+              places={visiblePlaces}
+              selectedId={selected}
+              onSelect={id => {
+                setCourse(null);
+                setSelected(id);
+              }}
+            />
+          )}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
           {offSite && fix && <OutOfRangeOverlay info={offSite} me={fix} />}
           {outcome && (
