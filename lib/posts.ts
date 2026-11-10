@@ -5,7 +5,9 @@ import { CATEGORY_GROUP } from './constants';
  * 현장 게시물 (사진 1장 + 글). 11/9 피그마 SCREEN 07·08 기준.
  * 백엔드 API (노션 "현재 진행 상황 공유" 9장):
  *  - GET  /api/feed?group=            → Post[] (최신순)
- *  - POST /api/places/[id]/photos     → multipart: image(JPEG), text, deviceId → 201 Post
+ *  - POST /api/places/[id]/photos     → multipart: image(JPEG), text, deviceId → 201 Post (카카오 로그인 필요)
+ *  - GET  /api/me/posts               → 내 글 (로그인)
+ *  - DELETE /api/posts/[id]           → 내 글 삭제 (로그인)
  */
 export type Post = {
   id: string;
@@ -13,6 +15,8 @@ export type Post = {
   placeName: string;
   category: Category;
   author: { nickname: string; avatarUrl: string | null };
+  /** 로그인한 내가 쓴 글 (삭제 메뉴 표시) */
+  mine?: boolean;
   imageUrl: string | null;
   text: string;
   createdAt: string;

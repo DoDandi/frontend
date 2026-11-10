@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import DeletePostSheet from '@/components/DeletePostSheet';
 import FilterChips from '@/components/FilterChips';
 import PostCard from '@/components/PostCard';
 import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
+import { authHeaders, useAuth } from '@/lib/auth';
 import { POLL_MS, type Group } from '@/lib/constants';
 import { samplePosts, type Post } from '@/lib/posts';
 
 /** 피드 API가 아직 없으면(404) 예시 게시물로 화면을 보여 준다 */
-async function loadFeed(url: string): Promise<{ posts: Post[]; sample: boolean }> {
-  const r = await fetch(url);
+async function loadFeed([url]: [string, string]): Promise<{ posts: Post[]; sample: boolean }> {
+  // 로그인했으면 토큰을 붙여 내 글(mine)을 표시받는다
+  const r = await fetch(url, { headers: await authHeaders() });
   if (r.status === 404) {
     const group = new URL(url, 'http://x').searchParams.get('group') as Group | null;
     return { posts: samplePosts(group), sample: true };
@@ -24,10 +27,15 @@ export default function FeedPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState('');
+  const [managing, setManaging] = useState<Post | null>(null);
+  const { user, loading: authLoading } = useAuth();
 
-  const { data, error, isLoading, mutate } = useSWR(`/api/feed${group ? `?group=${group}` : ''}`, loadFeed, {
-    refreshInterval: POLL_MS * 6,
-  });
+  // 로그인 상태를 알게 된 뒤에 부른다 (로그인/로그아웃하면 다시 불러 mine이 바뀐다)
+  const { data, error, isLoading, mutate } = useSWR(
+    authLoading ? null : ([`/api/feed${group ? `?group=${group}` : ''}`, user?.id ?? ''] as [string, string]),
+    loadFeed,
+    { refreshInterval: POLL_MS * 6 }
+  );
 
   const term = q.trim().replace(/\s+/g, '').toLowerCase();
   const posts = data?.posts.filter(
@@ -74,7 +82,7 @@ export default function FeedPage() {
           </p>
         )}
 
-        {isLoading ? (
+        {isLoading || (!data && !error) ? (
           <p className="py-16 text-center text-sm text-[#766F69]">불러오는 중…</p>
         ) : error ? (
           <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => mutate() }} />
@@ -87,13 +95,24 @@ export default function FeedPage() {
         ) : (
           <div className="flex flex-col gap-[15px]">
             {posts?.map(p => (
-              <PostCard key={p.id} post={p} />
+              <PostCard key={p.id} post={p} onMore={p.mine ? () => setManaging(p) : undefined} />
             ))}
           </div>
         )}
       </div>
 
       <TabBar active="feed" />
+
+      {managing && (
+        <DeletePostSheet
+          post={managing}
+          onClose={() => setManaging(null)}
+          onDeleted={() => {
+            setManaging(null);
+            mutate();
+          }}
+        />
+      )}
     </main>
   );
 }

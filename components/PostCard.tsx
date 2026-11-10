@@ -2,7 +2,7 @@
 import { avatarColor, timeAgo, type Post } from '@/lib/posts';
 
 /** 피드 게시글 카드 (피그마 SCREEN 07 · 피드 / 게시글) */
-export default function PostCard({ post }: { post: Post }) {
+export default function PostCard({ post, onMore }: { post: Post; /** 내 글이면 ⋯ 메뉴 (SCREEN 21) */ onMore?: () => void }) {
   return (
     <article className="rounded-2xl border border-[#E9E2DA] bg-white px-[14px] pb-4 pt-3">
       <header className="flex items-center gap-[10px] pl-px">
@@ -17,12 +17,20 @@ export default function PostCard({ post }: { post: Post }) {
             ◯
           </span>
         )}
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-bold leading-[19px] text-[#282522]">{post.author.nickname}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-bold leading-[19px] text-[#282522]">
+            {post.author.nickname}
+            {post.mine ? ' (나)' : ''}
+          </p>
           <p className="mt-1 truncate text-[11px] leading-4 text-[#766F69]">
             {post.placeName} · {timeAgo(post.createdAt)}
           </p>
         </div>
+        {onMore && (
+          <button type="button" onClick={onMore} className="-mr-1 shrink-0 px-2 py-1 text-lg font-bold leading-none tracking-widest text-[#766F69]" aria-label="내 글 관리">
+            ⋯
+          </button>
+        )}
       </header>
 
       {post.imageUrl ? (
