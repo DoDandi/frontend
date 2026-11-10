@@ -33,9 +33,8 @@ export function requestBbox([w, s, e, n]: [number, number, number, number]): str
   return [down(w - padX), down(s - padY), up(e + padX), up(n + padY)].join(',');
 }
 
-/** 내 위치 주변 범위 (현장 인증·반경 밖 안내용). 약 ±600m */
-export function aroundBbox(p: { lat: number; lng: number }): string {
-  const d = 0.006;
+/** 내 위치 주변 범위 (현장 인증·반경 밖 안내용). 기본 약 ±600m */
+export function aroundBbox(p: { lat: number; lng: number }, d = 0.006): string {
   return [p.lng - d, p.lat - d, p.lng + d, p.lat + d].map(v => v.toFixed(3)).join(',');
 }
 

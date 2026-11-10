@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { COOLDOWN_MIN, GPS_MAX_ACCURACY_M, MAX_TAPS, TAP_DURATION_SEC } from '@/lib/constants';
 import { getDeviceId } from '@/lib/device';
 import HeatFab from './HeatFab';
+import { SHOP_ID_PREFIX } from './ShopDots';
 
 export type Fix = { lat: number; lng: number; accuracy: number };
 export type SiteState =
@@ -14,7 +15,7 @@ export type SiteState =
   | { status: 'choose'; candidates: { id: string; name: string; distanceM: number }[] }
   | { status: 'ok'; place: { id: string; name: string } };
 
-export type HeatApiResult = { tempBefore: number; tempAfter: number; delta: number; peers: number };
+export type HeatApiResult = { placeId?: string; created?: boolean; tempBefore: number; tempAfter: number; delta: number; peers: number };
 type Phase = { kind: 'idle' } | { kind: 'tapping' } | { kind: 'sending' } | { kind: 'error'; message: string };
 
 const COOLDOWN_KEY = 'yeolgi-heat-cooldown';
@@ -49,8 +50,11 @@ export default function HeatSession({
   fixRef: RefObject<Fix | null>;
   onChoose: (placeId: string) => void;
   onToast: (msg: string) => void;
-  /** 성공하면 결과를 넘긴다. 결과 시트(SCREEN 13)·대프리카(14)는 페이지가 그린다 */
-  onSent: (result: HeatApiResult, placeId: string) => void;
+  /**
+   * 성공하면 결과를 넘긴다. 결과 시트(SCREEN 13)·대프리카(14)는 페이지가 그린다.
+   * placeId: 저장된 장소 id / sentId: 보낸 id (주변 가게였으면 'kakao:…', 처음 열기로 저장되면 둘이 다르다)
+   */
+  onSent: (result: HeatApiResult, placeId: string, sentId: string) => void;
   /** 현장 밖에서 누르면 반경 밖 안내(SCREEN 20)를 연다 */
   onOffSite: () => void;
   /** 위치를 못 받았을 때 (위치 권한 안내 카드, SCREEN 22) */
@@ -108,7 +112,10 @@ export default function HeatSession({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          placeId: target.id,
+          // 주변 가게(아직 저장 안 됨)는 카카오 ID와 이름을 보내고, 백엔드가 확인 후 장소로 저장한다
+          ...(target.id.startsWith(SHOP_ID_PREFIX)
+            ? { kakaoId: target.id.slice(SHOP_ID_PREFIX.length), kakaoName: target.name }
+            : { placeId: target.id }),
           deviceId: getDeviceId(),
           lat: fix?.lat,
           lng: fix?.lng,
@@ -119,9 +126,11 @@ export default function HeatSession({
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
+        const placeId: string = body.placeId ?? target.id;
         setCooldown(target.id, Date.now() + COOLDOWN_MIN * 60_000);
+        if (placeId !== target.id) setCooldown(placeId, Date.now() + COOLDOWN_MIN * 60_000);
         setPhase({ kind: 'idle' });
-        onSent(body, target.id);
+        onSent(body, placeId, target.id);
         return;
       }
       let message = '잠시 뒤 다시 시도해 주세요';
@@ -129,6 +138,7 @@ export default function HeatSession({
         setCooldown(target.id, Date.now() + body.retryAfterSec * 1000);
         message = `${Math.ceil(body.retryAfterSec / 60)}분 뒤에 다시 올릴 수 있어요`;
       } else if (body.error === 'LOW_ACCURACY') message = `위치 오차가 커요 (${body.accuracyM}m). 하늘이 보이는 곳에서 다시 해 주세요`;
+      else if (body.error === 'INVALID' && target.id.startsWith(SHOP_ID_PREFIX)) message = `${target.name} 정보를 확인하지 못했어요. 가게 가까이에서 다시 해 주세요`;
       else if (body.error === 'TOO_FAR') message = `${target.name} ${body.radiusM}m 안에서만 올릴 수 있어요 (지금 ${body.distanceM}m)`;
       setPhase({ kind: 'error', message });
     } catch {

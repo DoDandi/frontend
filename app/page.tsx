@@ -13,6 +13,7 @@ import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession'
 import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/OutOfRange';
 import { MapOverlay, PlaceMarkers } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
+import ShopDots, { shopId, type Shop } from '@/components/ShopDots';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { SheetPeek } from '@/components/Sheet';
 import StateCard from '@/components/StateCard';
@@ -29,13 +30,18 @@ import {
   ZONE_FOCUS_ZOOM,
   LOCATE_ZOOM,
   LOCATE_MAX_FROM_CENTER_M,
+  SHOP_NEAR_DEG,
+  SHOP_ZOOM,
   ZONE_ZOOM_THRESHOLD,
+  type Category,
   type Group,
 } from '@/lib/constants';
 import { aroundBbox, bboxContains, checkOnSite, distanceM, requestBbox } from '@/lib/geo';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 
 type PlaceItem = ZonePlace & { lat: number; lng: number };
+/** 열기를 올릴 수 있는 곳: 저장된 장소 또는 주변 가게 */
+type SiteItem = { id: string; name: string; category: Category; lat: number; lng: number };
 
 // 구역 미리보기 한 줄 설명 (평소값 20° 기준). 백엔드가 vsBaseline을 주면 숫자로 바꾼다
 /** V2-01 문구: "평소보다 22° 높아요" */
@@ -139,6 +145,17 @@ export default function Home() {
     for (const list of [allPlaces, zonePlaces, nearPlaces, viewPlaces]) list?.forEach(p => m.set(p.id, p));
     return m;
   }, [allPlaces, zonePlaces, nearPlaces, viewPlaces]);
+  // 확대하면 아직 열기가 없는 주변 음식점·카페(카카오)를 작은 점으로. 현장 인증 후보에는 내 주변 가게도 넣는다
+  const showShops = !showZones && zoom >= SHOP_ZOOM && (!group || group === CATEGORY_GROUP.food);
+  const shopOpts = { keepPreviousData: true, revalidateOnFocus: false };
+  const { data: viewShops } = useSWR<Shop[]>(showShops && viewBbox ? `/api/nearby?bbox=${viewBbox}` : null, fetcher, shopOpts);
+  const { data: nearShops } = useSWR<Shop[]>(fix ? `/api/nearby?bbox=${aroundBbox(fix, SHOP_NEAR_DEG)}` : null, fetcher, shopOpts);
+  const shops = useMemo(() => {
+    const m = new Map<string, SiteItem>();
+    for (const list of [nearShops, viewShops]) list?.forEach(s => m.set(shopId(s.kakaoId), { ...s, id: shopId(s.kakaoId) }));
+    return m;
+  }, [nearShops, viewShops]);
+  const findPlace = (id: string | null): SiteItem | null => (id && (known.get(id) ?? shops.get(id))) || null;
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
   const { data: outcomeCourse } = useSWR<Course>(
     outcome ? `/api/course?lat=${outcome.place.lat}&lng=${outcome.place.lng}&limit=2` : null,
@@ -160,12 +177,12 @@ export default function Home() {
   useEffect(() => {
     if (selected) setChosenId(selected);
   }, [selected]);
-  const chosenPlace = (chosenId && known.get(chosenId)) || null;
+  const chosenPlace = findPlace(chosenId);
   // 현장 인증: 위치 오차 확인 → 장소 종류별 반경 안 후보 → 고른 장소 / 하나뿐인 후보 / 직접 고르기
   const site: SiteState = (() => {
     if (!fix || !nearPlaces) return { status: 'no-location' };
     if (fix.accuracy > GPS_MAX_ACCURACY_M) return { status: 'locating', accuracyM: Math.round(fix.accuracy) };
-    const candidates = (chosenPlace ? [chosenPlace] : nearPlaces)
+    const candidates = (chosenPlace ? [chosenPlace] : [...nearPlaces, ...shops.values()])
       .map(p => ({ p, site: checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M) }))
       .filter(c => c.site.ok)
       .sort((a, b) => a.site.distanceM - b.site.distanceM);
@@ -194,7 +211,7 @@ export default function Home() {
     const pool = [...known.values()];
     if (!fix || !pool.length) return;
     const target =
-      known.get(selected ?? chosenId ?? '') ?? pool.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), pool[0]);
+      findPlace(selected ?? chosenId) ?? pool.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), pool[0]);
     setOffSite({
       place: { id: target.id, name: target.name, lat: target.lat, lng: target.lng },
       radiusM: HEAT_RADIUS_BY_CATEGORY[target.category],
@@ -205,6 +222,19 @@ export default function Home() {
   const certifiedId = site.status === 'ok' ? site.place.id : null;
   const suggest = (nearPlaces ?? viewPlaces)?.filter(p => p.id !== certifiedId).reduce<PlaceItem | null>((a, p) => (!a || p.temp > a.temp ? p : a), null) ?? null;
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
+
+  // 장소 상세의 "열기 올리기"·주변 가게 점: 지도 위 불꽃 버튼으로 그곳의 열기를 올린다
+  const chooseForHeat = (id: string) => {
+    setChosenId(id);
+    setSelected(null);
+    const p = findPlace(id);
+    if (!p) return;
+    if (!fix) return setGeoCard(true);
+    const r = checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M);
+    if (r.ok) showToast(`${p.name} 현장 인증! 불꽃 버튼을 눌러 주세요`);
+    else if (r.reason === 'LOW_ACCURACY') showToast(`위치 오차가 커요 (${Math.round(fix.accuracy)}m). 잠시 기다려 주세요`);
+    else showToast(`${p.name} ${HEAT_RADIUS_BY_CATEGORY[p.category]}m 안에서만 올릴 수 있어요 (지금 ${r.distanceM}m)`);
+  };
 
   const showCourse = useCallback(async (from?: LatLng) => {
     setSelected(null);
@@ -270,6 +300,16 @@ export default function Home() {
                 }}
               />
             ))}
+          {showShops && viewShops && (
+            <ShopDots
+              shops={viewShops}
+              selectedId={chosenId}
+              onSelect={id => {
+                setCourse(null);
+                chooseForHeat(id);
+              }}
+            />
+          )}
           {!showZones && visiblePlaces && (
             <PlaceMarkers
               places={visiblePlaces}
@@ -359,9 +399,14 @@ export default function Home() {
               onNoLocation={() => (fix ? showToast('장소를 불러오는 중이에요') : setGeoCard(true))}
               suggest={suggest && { id: suggest.id, name: suggest.name, temp: suggest.temp }}
               onSuggest={id => setSelected(id)}
-              onSent={(r, placeId) => {
+              onSent={(r, placeId, sentId) => {
                 refreshPlaces();
-                const p = known.get(placeId);
+                if (placeId !== sentId) {
+                  // 주변 가게가 처음 열기를 받아 장소로 저장됨 → 점 목록에서 빠지고 장소 마커로 보인다
+                  mutateAll(key => typeof key === 'string' && key.startsWith('/api/nearby'));
+                  if (chosenId === sentId) setChosenId(placeId);
+                }
+                const p = known.get(placeId) ?? shops.get(sentId);
                 if (!p) return;
                 setOutcome({ place: { id: p.id, name: p.name, lat: p.lat, lng: p.lng }, ...r });
                 setShowDaefrica(r.tempAfter >= DAEFRICA_TEMP);
@@ -389,18 +434,7 @@ export default function Home() {
           <PlaceSheet
             placeId={selected}
             onClose={() => setSelected(null)}
-            onHeat={id => {
-              // 시트를 닫고 지도 위 불꽃 버튼으로 그 장소의 열기를 올린다
-              setChosenId(id);
-              setSelected(null);
-              const p = known.get(id);
-              if (!p) return;
-              if (!fix) return setGeoCard(true);
-              const r = checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M);
-              if (r.ok) showToast(`${p.name} 현장 인증! 불꽃 버튼을 눌러 주세요`);
-              else if (r.reason === 'LOW_ACCURACY') showToast(`위치 오차가 커요 (${Math.round(fix.accuracy)}m). 잠시 기다려 주세요`);
-              else showToast(`${p.name} ${HEAT_RADIUS_BY_CATEGORY[p.category]}m 안에서만 올릴 수 있어요 (지금 ${r.distanceM}m)`);
-            }}
+            onHeat={chooseForHeat}
           />
         ) : zone && zonePlaces ? (
           <ZoneSheet zone={zone} places={zonePlaces} onClose={() => setZoneId(null)} onSelectPlace={setSelected} />
