@@ -207,15 +207,16 @@ export default function Home() {
       () => showToast('위치를 가져오지 못했어요. 브라우저 설정에서 위치 권한을 허용해 주세요'),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
     );
-  const openOffSite = () => {
+  // server: 서버가 403 TOO_FAR로 거절한 경우 그 장소와 서버가 잰 거리·반경을 쓴다
+  const openOffSite = (server?: { placeId: string; distanceM: number; radiusM: number }) => {
     const pool = [...known.values()];
     if (!fix || !pool.length) return;
     const target =
-      findPlace(selected ?? chosenId) ?? pool.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), pool[0]);
+      findPlace(server?.placeId ?? selected ?? chosenId) ?? pool.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), pool[0]);
     setOffSite({
       place: { id: target.id, name: target.name, lat: target.lat, lng: target.lng },
-      radiusM: HEAT_RADIUS_BY_CATEGORY[target.category],
-      distanceM: Math.round(distanceM(fix, target)),
+      radiusM: server?.radiusM ?? HEAT_RADIUS_BY_CATEGORY[target.category],
+      distanceM: server?.distanceM ?? Math.round(distanceM(fix, target)),
     });
   };
   // 쿨다운 중 추천: 지금 인증된 곳을 뺀 가장 뜨거운 곳 (SCREEN 19)
@@ -376,9 +377,10 @@ export default function Home() {
               </div>
             </div>
           )}
-          {!selected && !course && !outcome && !listOpen && !zone && !offSite && chosenPlace && (
+          {/* 반경 밖 시트가 열려 있어도 '현장 밖' 불꽃 버튼은 시트 위에 남긴다 (SCREEN 20) */}
+          {!selected && !course && !outcome && !listOpen && !zone && chosenPlace && (
             <div className="pointer-events-none flex flex-col">
-              <div className="pl-[22px]">
+              <div className={`pl-[22px] ${offSite ? 'hidden' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setChosenId(null)}
@@ -396,6 +398,7 @@ export default function Home() {
               onChoose={setChosenId}
               onToast={showToast}
               onOffSite={openOffSite}
+              fabOnly={!!offSite}
               onNoLocation={() => (fix ? showToast('장소를 불러오는 중이에요') : setGeoCard(true))}
               suggest={suggest && { id: suggest.id, name: suggest.name, temp: suggest.temp }}
               onSuggest={id => setSelected(id)}
