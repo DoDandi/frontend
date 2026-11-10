@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
+import LoginSheet from '@/components/LoginSheet';
 import { fetcher, type PlaceDetail } from '@/components/PlaceSheet';
 import StateCard from '@/components/StateCard';
+import { authHeaders, useAuth } from '@/lib/auth';
 import { getDeviceId } from '@/lib/device';
 import { POST_TEXT_MAX, resizeImage } from '@/lib/posts';
 
@@ -24,6 +26,10 @@ function NewPost() {
   // 네트워크·서버 문제로 못 올렸을 때 (SCREEN 22 업로드 실패 카드)
   const [uploadFailed, setUploadFailed] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // 글쓰기는 카카오 로그인 필요 (SCREEN 16). 로그인 후 이 화면으로 돌아온다
+  const { user, loading: authLoading } = useAuth();
+  const [needLogin, setNeedLogin] = useState(false);
+  const showLogin = needLogin || (!authLoading && !user);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -53,7 +59,7 @@ function NewPost() {
     form.append('text', text.trim());
     form.append('deviceId', getDeviceId());
     try {
-      const r = await fetch(`/api/places/${placeId}/photos`, { method: 'POST', body: form });
+      const r = await fetch(`/api/places/${placeId}/photos`, { method: 'POST', body: form, headers: await authHeaders() });
       if (r.ok) {
         router.push('/feed');
         return;
@@ -62,10 +68,12 @@ function NewPost() {
         setUploadFailed(true);
         return;
       }
+      if (r.status === 401) {
+        setNeedLogin(true);
+        return;
+      }
       setMessage(
-        r.status === 401
-          ? '글을 올리려면 카카오 로그인이 필요해요.'
-          : r.status === 403
+        r.status === 403
             ? '이 장소를 방문한 사람만 글을 남길 수 있어요.'
             : r.status === 404
               ? '게시 기능은 아직 준비 중이에요. (게시물 API 연결 전)'
@@ -174,6 +182,7 @@ function NewPost() {
           {busy ? '올리는 중…' : '사진과 글 게시하기'}
         </button>
       </div>
+      {showLogin && <LoginSheet next={`/feed/new${placeId ? `?placeId=${placeId}` : ''}`} onClose={() => (history.length > 1 ? router.back() : router.push('/feed'))} />}
     </main>
   );
 }
