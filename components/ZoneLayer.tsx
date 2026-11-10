@@ -1,7 +1,7 @@
 'use client';
 
 import { Fire, ImageSquare } from '@phosphor-icons/react/dist/ssr';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { distanceM } from '@/lib/geo';
@@ -9,6 +9,7 @@ import { BAND_STYLE, MapOverlay } from './HeatMarker';
 import { useBaseMap } from './BaseMap';
 import { BandChip, SheetPeek } from './Sheet';
 import SheetGrip from './SheetGrip';
+import { FONT, OVERLAY_BEFORE } from '@/lib/mapStyle';
 
 export type ZoneItem = {
   id: string;
@@ -51,6 +52,62 @@ const zoneFill = (t: number) => Math.min(0.8, Math.max(0.4, 0.48 + (clampT(t) - 
 const alpha = (o: number) => Math.round(o * 255).toString(16).padStart(2, '0');
 
 /** 구역: 온도에 따라 커지고 진해지는 원 + 가운데 큰 온도·구역명 */
+/** 줌 0에서 1px이 몇 m인가 (512px 타일 기준). 줌이 1 오를 때마다 절반 */
+const metersPerPxAtZoom0 = (lat: number) => 78_271.517 * Math.cos((lat * Math.PI) / 180);
+
+/**
+ * 확대했을 때 구역을 연한 구름으로 가게 마커 뒤에 깔고, 구역 이름을 함께 쓴다.
+ * 지도 캔버스 레이어라 HTML 마커(가게)를 누르는 데 방해하지 않는다. 구름 크기는 구역 반경(m)을 따라 줌과 함께 커진다
+ */
+export function ZoneClouds({ zones }: { zones: ZoneItem[] }) {
+  const map = useBaseMap();
+  const data = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: zones.map(z => ({
+        type: 'Feature' as const,
+        properties: { name: z.name, color: BAND_STYLE[z.band].color, text: BAND_STYLE[z.band].text, r: z.radiusM * 1.3, mpp0: metersPerPxAtZoom0(z.lat) },
+        geometry: { type: 'Point' as const, coordinates: [z.lng, z.lat] },
+      })),
+    }),
+    [zones]
+  );
+
+  useEffect(() => {
+    if (!map) return;
+    map.addSource('zone-clouds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    // 반경(m) → 화면 px: r / (mpp0 / 2^zoom). 줌 0과 22 사이를 2배씩 보간하면 정확히 맞는다
+    const radius = ['interpolate', ['exponential', 2], ['zoom'], 0, ['/', ['get', 'r'], ['get', 'mpp0']], 22, ['/', ['*', ['get', 'r'], 4_194_304], ['get', 'mpp0']]];
+    map.addLayer(
+      {
+        id: 'zone-clouds',
+        type: 'circle',
+        source: 'zone-clouds',
+        paint: { 'circle-color': ['get', 'color'], 'circle-radius': radius as never, 'circle-blur': 0.5, 'circle-opacity': 0.5 },
+      },
+      OVERLAY_BEFORE
+    );
+    map.addLayer({
+      id: 'zone-cloud-names',
+      type: 'symbol',
+      source: 'zone-clouds',
+      layout: { 'text-field': ['get', 'name'], 'text-font': FONT, 'text-size': 15, 'text-offset': [0, -2.2], 'text-allow-overlap': false },
+      paint: { 'text-color': ['get', 'text'], 'text-halo-color': '#ffffff', 'text-halo-width': 2 },
+    });
+    return () => {
+      if (!map.getStyle()) return;
+      ['zone-cloud-names', 'zone-clouds'].forEach(id => map.getLayer(id) && map.removeLayer(id));
+      if (map.getSource('zone-clouds')) map.removeSource('zone-clouds');
+    };
+  }, [map]);
+
+  useEffect(() => {
+    (map?.getSource('zone-clouds') as { setData?: (d: unknown) => void } | undefined)?.setData?.(data);
+  }, [map, data]);
+
+  return null;
+}
+
 export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => void }) {
   const map = useBaseMap();
   const s = BAND_STYLE[zone.band];
