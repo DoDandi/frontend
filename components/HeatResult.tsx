@@ -43,7 +43,7 @@ export function HeatResultSheet({
       <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
       <div className="flex items-center gap-2">
         <p className="flex flex-1 items-center gap-1.5 text-xl font-bold text-[#282522]">
-          <Fire size={20} weight="fill" className="inline-block shrink-0 text-[#D94B35]" aria-hidden="true" />
+          <Fire size={20} weight="fill" className="inline-block shrink-0 text-[#C2462B]" aria-hidden="true" />
           열기를 올렸어요!
         </p>
         <span className="rounded-[14px] bg-[#FCE8E1] px-2.5 py-[5px] text-[11px] font-bold text-[#B33E29]">{BAND_LABEL[b]}</span>
@@ -128,7 +128,7 @@ export function DaefricaOverlay({ outcome, onNext }: { outcome: HeatOutcome; onN
   }, []);
   const wave = 'pointer-events-none absolute whitespace-nowrap text-[28px] font-bold text-white';
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-[linear-gradient(180deg,rgba(217,75,53,0.96)_0%,rgba(236,91,56,0.94)_60%,rgba(249,182,55,0.94)_100%)]" role="dialog" aria-label="대프리카">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-[linear-gradient(180deg,rgba(194,70,43,0.96)_0%,rgba(236,91,56,0.94)_60%,rgba(249,182,55,0.94)_100%)]" role="dialog" aria-label="대프리카">
       <p className={`${wave} left-[29px] top-[169px] opacity-35`}>〰〰〰</p>
       <p className={`${wave} left-[219px] top-[229px] opacity-30`}>〰〰</p>
       <p className={`${wave} bottom-[175px] left-[59px] opacity-30`}>〰〰〰〰</p>

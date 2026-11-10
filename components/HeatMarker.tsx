@@ -14,7 +14,7 @@ export const BAND_STYLE: Record<Band, { color: string; text: string; soft: strin
   mild: { color: '#BBD7E6', text: '#3E5A6A', soft: '#EAF3F8', onColor: '#282522', dot: 24, className: '' },
   warm: { color: '#F9B637', text: '#8A5A00', soft: '#FFF1CF', onColor: '#282522', dot: 30, className: '' },
   hot: { color: '#F18D4D', text: '#9A3F12', soft: '#FDE6D6', onColor: '#282522', dot: 34, className: 'heat-pulse-slow' },
-  daefrica: { color: '#D94B35', text: '#8F2A1C', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
+  daefrica: { color: '#C2462B' /* 피그마 #D94B35를 흰 글씨 대비 4.5:1 이상(4.99)으로 진하게 */, text: '#8F2A1C', soft: '#FCE8E1', onColor: '#FFFFFF', dot: 38, className: 'heat-pulse-fast heat-glow' },
 };
 
 /** 지도 위 좌표에 React 요소를 띄우는 마커 */
