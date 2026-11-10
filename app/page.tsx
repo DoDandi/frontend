@@ -12,7 +12,7 @@ import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/O
 import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
-import Sheet from '@/components/Sheet';
+import Sheet, { SheetPeek } from '@/components/Sheet';
 import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
 import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
@@ -74,6 +74,8 @@ export default function Home() {
   const [listOpen, setListOpen] = useState(false);
   const [offSite, setOffSite] = useState<OffSite | null>(null);
   const [geoCard, setGeoCard] = useState(false);
+  // 하단 요약 시트: 처음엔 한 줄로 접어 두고 누르면 펼친다
+  const [summaryOpen, setSummaryOpen] = useState(false);
   // 위치 권한 카드는 지도를 가리지 않게 잠시 뒤 스스로 닫는다
   useEffect(() => {
     if (!geoCard) return;
@@ -185,19 +187,20 @@ export default function Home() {
 
   return (
     <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-white text-gray-900">
-      <header className="flex shrink-0 flex-col px-[17px] pb-2 pt-[max(env(safe-area-inset-top),49px)]">
-        <div className="flex h-[42px] items-center justify-between pl-1.5">
-          <h1 className="text-[22px] font-bold leading-8 text-[#282522]">열기지도</h1>
+      {/* 지도를 넓게 보이도록 제목·갱신 표시를 한 줄로 (휴대폰 기준 약 100px) */}
+      <header className="flex shrink-0 flex-col gap-1.5 px-[17px] pb-2 pt-[max(env(safe-area-inset-top),10px)]">
+        <div className="flex h-10 items-center gap-2 pl-1.5">
+          <h1 className="text-xl font-bold leading-7 text-[#282522]">열기지도</h1>
+          <p className="flex-1 whitespace-pre text-[11px] font-medium text-[#766F69]">{'●  5초마다 갱신'}</p>
           <button
             type="button"
             onClick={() => setSearching(true)}
-            className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6F4F1] text-[21px] font-medium leading-[30px] text-[#282522]"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F6F4F1] text-[19px] font-medium leading-[30px] text-[#282522]"
             aria-label="장소 검색"
           >
             ⌕
           </button>
         </div>
-        <p className="mb-[7px] h-[22px] whitespace-pre pl-1.5 text-[11px] font-medium leading-[22px] text-[#766F69]">{'●  5초마다 갱신'}</p>
         <FilterChips
           value={group}
           onChange={g => {
@@ -344,8 +347,15 @@ export default function Home() {
         ) : course ? (
           <CourseCard course={course.data} onClose={() => setCourse(null)} />
         ) : showZones ? (
-          hottestZone && (
-            <Sheet>
+          hottestZone &&
+          (!summaryOpen ? (
+            <SheetPeek
+              onOpen={() => setSummaryOpen(true)}
+              title={`지금 뜨거운 곳 · ${hottestZone.name}`}
+              right={<span className="shrink-0 text-sm font-bold tabular-nums text-[#B7392D]">열기 {Math.round(hottestZone.temp)}°</span>}
+            />
+          ) : (
+            <Sheet onCollapse={() => setSummaryOpen(false)}>
               <button type="button" onClick={() => setZoneId(hottestZone.id)} className="block w-full text-left">
                 <div className="flex h-8 items-center justify-between">
                   <span className="text-[17px] font-bold leading-[25px] text-[#282522]">지금 뜨거운 곳</span>
@@ -366,7 +376,7 @@ export default function Home() {
               </button>
               <p className="mt-[11px] border-t border-[#E9E2DA] pt-[11px] text-xs leading-[17px] text-[#766F69]">지도를 확대하면 매장별 열기를 볼 수 있어요</p>
             </Sheet>
-          )
+          ))
         ) : (
           visiblePlaces && (
             <PlaceListSheet
