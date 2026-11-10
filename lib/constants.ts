@@ -67,6 +67,10 @@ export const ZONE_ZOOM_THRESHOLD = 14.5;
 // 구역을 누르면 이 레벨로 확대한다
 /** ◎ 현재 위치로 이동할 때 확대 레벨 */
 export const LOCATE_ZOOM = 16;
+// 이 확대 레벨부터 아직 열기가 없는 주변 음식점·카페(카카오)를 작은 점으로 보여 준다
+export const SHOP_ZOOM = 16;
+// 현장 인증 후보로 받을 내 주변 가게 범위 (약 ±100m. 가게 반경 30m + 위치 오차 30m보다 넉넉히)
+export const SHOP_NEAR_DEG = 0.001;
 /** 첫 화면을 현재 위치로 옮기는 최대 거리 (원도심 중심에서. 대구 밖이면 원도심을 보여 줌) */
 export const LOCATE_MAX_FROM_CENTER_M = 25_000;
 export const ZONE_FOCUS_ZOOM = 15.5;
