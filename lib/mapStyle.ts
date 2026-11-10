@@ -8,7 +8,7 @@ import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl';
  */
 const NAME: ExpressionSpecification = ['coalesce', ['get', 'name:ko'], ['get', 'name']];
 const MAJOR = ['motorway', 'trunk', 'primary', 'secondary'];
-const FONT = ['Noto Sans Regular'];
+export const FONT = ['Noto Sans Regular'];
 
 export const MAP_ATTRIBUTION = '© OpenStreetMap · OpenMapTiles · OpenFreeMap';
 

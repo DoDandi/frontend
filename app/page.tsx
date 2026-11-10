@@ -18,7 +18,7 @@ import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { SheetPeek } from '@/components/Sheet';
 import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
-import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
+import { PlaceListSheet, ZoneClouds, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
 import {
   CATEGORY_GROUP,
   DEFAULT_CENTER,
@@ -136,7 +136,15 @@ export default function Home() {
   const { data: nearOnly } = useSWR<PlaceItem[]>(nearBbox && !viewCoversNear ? `/api/places?bbox=${nearBbox}` : null, fetcher, live);
   const nearPlaces = viewCoversNear ? viewPlaces : nearOnly;
   const { data: zonePlaces } = useSWR<PlaceItem[]>(zoneId ? `/api/places?zone=${zoneId}` : null, fetcher, live);
-  const { data: allPlaces } = useSWR<PlaceItem[]>(searching ? '/api/places' : null, fetcher);
+  // 검색을 한 번 열면 전체 목록을 계속 들고 있는다 (검색에서 고른 장소로 지도를 옮기려면 좌표가 필요한데, 닫자마자 버리면 못 찾는다)
+  const [searchedOnce, setSearchedOnce] = useState(false);
+  const { data: allPlaces, mutate: refreshAllPlaces } = useSWR<PlaceItem[]>(searchedOnce ? '/api/places' : null, fetcher);
+  // 검색을 열 때마다 최신 온도로 다시 받는다
+  useEffect(() => {
+    if (!searching) return;
+    setSearchedOnce(true);
+    refreshAllPlaces();
+  }, [searching, refreshAllPlaces]);
   const { mutate: mutateAll } = useSWRConfig();
   const refreshPlaces = () => mutateAll(key => typeof key === 'string' && key.startsWith('/api/places'));
   // 한 번이라도 받은 장소는 id로 찾을 수 있게 모아 둔다 (고른 장소·결과 시트용, 최신 값이 이긴다)
@@ -301,6 +309,8 @@ export default function Home() {
                 }}
               />
             ))}
+          {/* 확대했을 때도 구역을 연한 구름 + 이름으로 마커 뒤에 깐다 */}
+          {!showZones && zones && <ZoneClouds zones={zones} />}
           {showShops && viewShops && (
             <ShopDots
               shops={viewShops}
