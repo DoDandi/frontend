@@ -62,7 +62,7 @@ export function HeatResultSheet({
         {peers > 1 ? (
           <>
             <p className="min-w-0 flex-1 text-xs font-medium text-[#282522]">나 포함 {peers}명이 1분 안에 함께 올렸어요</p>
-            <span className="shrink-0 rounded-[14px] bg-[#FFF1CF] px-2 py-[3px] text-[10px] font-bold text-[#B33E29]">함께 ×{together(peers).toFixed(1)}</span>
+            <span className="shrink-0 rounded-[14px] bg-[#FFF1CF] px-2 py-[3px] text-[11px] font-bold text-[#B33E29]">함께 ×{together(peers).toFixed(1)}</span>
           </>
         ) : (
           <p className="min-w-0 flex-1 text-xs font-medium text-[#282522]">1분 안에 여럿이 함께 올리면 최대 2배까지 올라가요</p>

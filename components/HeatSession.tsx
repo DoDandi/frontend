@@ -270,7 +270,7 @@ export default function HeatSession({
                 </span>
               </div>
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">
-                {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요!' : '반응을 누르면 불꽃이 올라가요!'}
+                {phase.kind === 'sending' ? '열기를 올리는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요!' : '반응을 누르면 불꽃이 올라가요!'}
               </p>
             </div>
           )}

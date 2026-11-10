@@ -73,7 +73,7 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        className="absolute left-2 top-2 z-30 rounded bg-white/75 px-1.5 text-[9px] leading-4 text-gray-600"
+        className="absolute left-2 top-2 z-30 rounded bg-white/75 px-1.5 text-[10px] leading-4 text-gray-700"
       >
         {MAP_ATTRIBUTION}
       </a>

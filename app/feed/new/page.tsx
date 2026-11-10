@@ -181,7 +181,7 @@ function NewPost() {
           disabled={!canSubmit}
           className="mt-[21px] h-[52px] w-full rounded-[14px] bg-[#B7392D] text-base font-bold leading-[23px] text-white disabled:opacity-40"
         >
-          {busy ? '올리는 중…' : '사진과 글 게시하기'}
+          {busy ? '올리는 중…' : '기록 남기기'}
         </button>
       </div>
       {showLogin && <LoginSheet next={`/feed/new${placeId ? `?placeId=${placeId}` : ''}`} onClose={() => (history.length > 1 ? router.back() : router.push('/feed'))} />}

@@ -54,7 +54,7 @@ export default function FeedPage() {
               setSearching(s => !s);
               setQ('');
             }}
-            className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6F4F1] text-[21px] font-medium leading-[30px]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F6F4F1]"
             aria-label={searching ? '검색 닫기' : '게시글 검색'}
           >
             {searching ? <X size={20} weight="bold" aria-hidden="true" /> : <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />}

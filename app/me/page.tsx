@@ -68,7 +68,7 @@ export default function MePage() {
                     {when(f.lastAt)}에 열기를 올렸어요{f.count > 1 ? ` · ${f.count}회` : ''}
                   </p>
                 </div>
-                <span className="shrink-0 text-[13px] font-bold tabular-nums text-[#EC5B38]">+{f.lastDelta.toFixed(1)}°</span>
+                <span className="shrink-0 text-[13px] font-bold tabular-nums text-[#C2462B]">+{f.lastDelta.toFixed(1)}°</span>
               </li>
             );
           })}
@@ -101,7 +101,7 @@ export default function MePage() {
               </p>
               <p className="mt-1 line-clamp-2 text-sm font-bold text-[#282522]">{p.text}</p>
             </div>
-            <button type="button" onClick={() => setManaging(p)} className="-mr-1 -mt-1 h-7 shrink-0 px-2 text-lg font-bold leading-none tracking-widest text-[#766F69]" aria-label="내 글 관리">
+            <button type="button" onClick={() => setManaging(p)} className="-mr-3 -mt-3 flex h-11 w-11 shrink-0 items-center justify-center text-[#766F69]" aria-label="내 글 관리">
               <DotsThree size={22} weight="bold" aria-hidden="true" />
             </button>
           </li>

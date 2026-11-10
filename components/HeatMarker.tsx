@@ -54,7 +54,7 @@ export default function HeatMarker({ lat, lng, name, temp, band, selected, compa
     height: s.dot,
     backgroundColor: s.color,
     color: s.onColor,
-    fontSize: s.dot >= 34 ? 13 : s.dot >= 30 ? 12 : 10,
+    fontSize: s.dot >= 34 ? 13 : s.dot >= 30 ? 12 : 11,
     ['--glow' as string]: s.color,
   };
   if (compact) {
