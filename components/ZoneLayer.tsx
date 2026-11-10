@@ -6,7 +6,7 @@ import { BAND_LABEL, type Band } from '@/lib/temperature';
 import { distanceM } from '@/lib/geo';
 import { BAND_STYLE, MapOverlay } from './HeatMarker';
 import { useBaseMap } from './BaseMap';
-import Sheet, { BandChip } from './Sheet';
+import { BandChip, SheetPeek } from './Sheet';
 
 export type ZoneItem = {
   id: string;
@@ -165,34 +165,9 @@ export function PlaceListSheet({
   const dist = (p: ZonePlace) => (origin && p.lat != null && p.lng != null ? distanceM(origin, { lat: p.lat, lng: p.lng }) : Infinity);
   const list = [...places].sort((a, b) => (sort === 'distance' ? dist(a) - dist(b) : b.temp - a.temp));
 
+  // 접힌 상태: 제목 한 줄만. 누르면 목록이 올라온다
   if (!open) {
-    return (
-      <Sheet onClose={onClose} maxH="55vh">
-        <div className="flex items-center justify-between gap-2 pr-8">
-          <h2 className="truncate text-[15px] font-extrabold text-gray-900">{title}</h2>
-          {badge && <BandChip {...badge} />}
-        </div>
-        {children}
-        {list.length === 0 ? (
-          <p className="py-4 text-center text-sm text-gray-500">아직 열기가 오른 곳이 없어요</p>
-        ) : (
-          <>
-            <div className="mt-2 flex gap-2 text-xs">
-              {list.slice(0, 2).map(p => (
-                <button key={p.id} type="button" onClick={() => onSelectPlace(p.id)} className="min-w-0 flex-1 truncate rounded-lg bg-gray-100 px-2.5 py-2 text-left">
-                  {p.name} {Math.round(p.temp)}°
-                </button>
-              ))}
-            </div>
-            {list.length > 2 && (
-              <button type="button" onClick={() => setOpen(true)} className="mt-2 w-full text-center text-xs font-bold text-[#B4431F]">
-                ↑ 목록 펼쳐 보기
-              </button>
-            )}
-          </>
-        )}
-      </Sheet>
-    );
+    return <SheetPeek onOpen={() => setOpen(true)} title={title} right={badge && <BandChip {...badge} />} />;
   }
 
   const sortBtn = (key: 'temp' | 'distance', label: string, w: string) => {
@@ -211,7 +186,7 @@ export function PlaceListSheet({
   };
 
   return (
-    <div className="pointer-events-auto relative flex max-h-[78vh] w-full flex-col rounded-t-3xl bg-white px-[22px] pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+    <div className="pointer-events-auto relative flex max-h-[68vh] w-full flex-col rounded-t-3xl bg-white px-[22px] pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
       <button type="button" onClick={() => (defaultOpen && onClose ? onClose() : setOpen(false))} className="absolute left-1/2 top-0 h-6 w-24 -translate-x-1/2" aria-label="목록 접기">
         <span className="mx-auto mt-[9px] block h-[5px] w-12 rounded-[3px] bg-[#E9E2DA]" />
       </button>
