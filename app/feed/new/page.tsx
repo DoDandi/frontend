@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { fetcher, type PlaceDetail } from '@/components/PlaceSheet';
+import StateCard from '@/components/StateCard';
 import { getDeviceId } from '@/lib/device';
 import { POST_TEXT_MAX, resizeImage } from '@/lib/posts';
 
@@ -20,6 +21,8 @@ function NewPost() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // 네트워크·서버 문제로 못 올렸을 때 (SCREEN 22 업로드 실패 카드)
+  const [uploadFailed, setUploadFailed] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => {
@@ -44,6 +47,7 @@ function NewPost() {
     if (!canSubmit || !photo) return;
     setBusy(true);
     setMessage(null);
+    setUploadFailed(false);
     const form = new FormData();
     form.append('image', photo, 'photo.jpg');
     form.append('text', text.trim());
@@ -52,6 +56,10 @@ function NewPost() {
       const r = await fetch(`/api/places/${placeId}/photos`, { method: 'POST', body: form });
       if (r.ok) {
         router.push('/feed');
+        return;
+      }
+      if (r.status >= 500) {
+        setUploadFailed(true);
         return;
       }
       setMessage(
@@ -66,7 +74,7 @@ function NewPost() {
                 : '올리지 못했어요. 잠시 뒤 다시 시도해 주세요.'
       );
     } catch {
-      setMessage('네트워크 연결을 확인해 주세요.');
+      setUploadFailed(true);
     } finally {
       setBusy(false);
     }
@@ -143,6 +151,17 @@ function NewPost() {
 
       <div className="mt-auto pt-3">
         {message && <p className="mb-2 text-center text-xs font-medium text-[#B7392D]">{message}</p>}
+        {uploadFailed && (
+          <div className="mb-3">
+            <StateCard
+              tone="warn"
+              icon="⚠️"
+              title="사진을 올리지 못했어요"
+              body="네트워크를 확인하고 다시 시도해 주세요. 쓴 글은 그대로 남아 있어요"
+              action={{ label: '다시 시도', onClick: submit }}
+            />
+          </div>
+        )}
         <p className="mx-1.5 flex h-8 items-center justify-center rounded-2xl bg-[#F6F4F1] text-[11px] font-medium leading-4 text-[#766F69]">
           이 장소를 방문한 사람들이 볼 수 있어요
         </p>

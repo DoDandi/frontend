@@ -13,6 +13,7 @@ import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet from '@/components/Sheet';
+import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
 import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
 import {
@@ -72,6 +73,13 @@ export default function Home() {
   const [showDaefrica, setShowDaefrica] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [offSite, setOffSite] = useState<OffSite | null>(null);
+  const [geoCard, setGeoCard] = useState(false);
+  // 위치 권한 카드는 지도를 가리지 않게 잠시 뒤 스스로 닫는다
+  useEffect(() => {
+    if (!geoCard) return;
+    const t = setTimeout(() => setGeoCard(false), 8_000);
+    return () => clearTimeout(t);
+  }, [geoCard]);
 
   // 현장 인증을 위해 위치와 오차를 계속 받는다 (권한이 없으면 null → 비활성)
   useEffect(() => {
@@ -96,7 +104,7 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const { data: places, mutate: refreshPlaces } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
+  const { data: places, error: placesError, mutate: refreshPlaces } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
   const { data: outcomeCourse } = useSWR<Course>(
     outcome ? `/api/course?lat=${outcome.place.lat}&lng=${outcome.place.lng}&limit=2` : null,
@@ -122,6 +130,20 @@ export default function Home() {
     return { status: 'choose', candidates: candidates.map(c => ({ id: c.p.id, name: c.p.name, distanceM: c.site.distanceM })) };
   })();
   // 반경 밖 안내 대상: 고른 장소, 없으면 가장 가까운 장소 (SCREEN 20)
+  // 위치를 한 번 더 받는다 (반경 밖 시트·위치 권한 카드 공용)
+  const recheckLocation = () =>
+    navigator.geolocation?.getCurrentPosition(
+      pos => {
+        const f = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+        fixRef.current = f;
+        setFix(f);
+        setOffSite(null);
+        setGeoCard(false);
+        showToast('위치를 다시 확인했어요');
+      },
+      () => showToast('위치를 가져오지 못했어요. 브라우저 설정에서 위치 권한을 허용해 주세요'),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
+    );
   const openOffSite = () => {
     if (!fix || !places?.length) return;
     const target =
@@ -250,6 +272,21 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
+          {placesError && !places && (
+            <div className="px-[17px] pb-3">
+              <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => refreshPlaces() }} />
+            </div>
+          )}
+          {geoCard && !fix && (
+            <div className="px-[17px] pb-3">
+              <StateCard
+                icon="📍"
+                title="위치 권한이 필요해요"
+                body="열기 올리기는 현장 반경 안에서만 할 수 있어요. 지도는 그대로 볼 수 있어요"
+                action={{ label: '위치 다시 확인', onClick: recheckLocation }}
+              />
+            </div>
+          )}
           {!selected && !course && !outcome && !listOpen && !zone && !offSite && (
             <HeatSession
               site={site}
@@ -257,6 +294,7 @@ export default function Home() {
               onChoose={setChosenId}
               onToast={showToast}
               onOffSite={openOffSite}
+              onNoLocation={() => (fix ? showToast('장소를 불러오는 중이에요') : setGeoCard(true))}
               suggest={suggest && { id: suggest.id, name: suggest.name, temp: suggest.temp }}
               onSuggest={id => setSelected(id)}
               onSent={(r, placeId) => {
@@ -272,19 +310,7 @@ export default function Home() {
           <OutOfRangeSheet
             info={offSite}
             onClose={() => setOffSite(null)}
-            onRecheck={() =>
-              navigator.geolocation?.getCurrentPosition(
-                pos => {
-                  const f = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
-                  fixRef.current = f;
-                  setFix(f);
-                  setOffSite(null);
-                  showToast('위치를 다시 확인했어요');
-                },
-                () => showToast('위치를 가져오지 못했어요. 위치 권한을 확인해 주세요'),
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
-              )
-            }
+            onRecheck={recheckLocation}
           />
         ) : outcome ? (
           <HeatResultSheet
@@ -306,7 +332,7 @@ export default function Home() {
               setSelected(null);
               const p = places?.find(x => x.id === id);
               if (!p) return;
-              if (!fix) return showToast('위치 권한을 켜야 열기를 올릴 수 있어요');
+              if (!fix) return setGeoCard(true);
               const r = checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M);
               if (r.ok) showToast(`${p.name} 현장 인증! 불꽃 버튼을 눌러 주세요`);
               else if (r.reason === 'LOW_ACCURACY') showToast(`위치 오차가 커요 (${Math.round(fix.accuracy)}m). 잠시 기다려 주세요`);

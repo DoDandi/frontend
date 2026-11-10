@@ -41,6 +41,7 @@ export default function HeatSession({
   onToast,
   onSent,
   onOffSite,
+  onNoLocation,
   suggest,
   onSuggest,
 }: {
@@ -52,6 +53,8 @@ export default function HeatSession({
   onSent: (result: HeatApiResult, placeId: string) => void;
   /** 현장 밖에서 누르면 반경 밖 안내(SCREEN 20)를 연다 */
   onOffSite: () => void;
+  /** 위치를 못 받았을 때 (위치 권한 안내 카드, SCREEN 22) */
+  onNoLocation: () => void;
   /** 쿨다운 중에 추천할 다른 장소 (SCREEN 19) */
   suggest: { id: string; name: string; temp: number } | null;
   onSuggest: (placeId: string) => void;
@@ -214,11 +217,13 @@ export default function HeatSession({
       onOffSite();
       return;
     }
+    if (site.status === 'no-location') {
+      onNoLocation();
+      return;
+    }
     if (site.status !== 'ok') {
       onToast(
-        site.status === 'no-location'
-          ? '위치 권한을 켜야 열기를 올릴 수 있어요'
-          : site.status === 'locating'
+        site.status === 'locating'
             ? `위치 오차가 커요 (${site.accuracyM}m). 하늘이 보이는 곳에서 잠시 기다려 주세요`
             : site.status === 'choose'
               ? '어느 장소인지 먼저 골라 주세요'
