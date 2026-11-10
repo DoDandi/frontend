@@ -93,3 +93,16 @@ export function MapFocus({ target, zoom }: { target: { lat: number; lng: number 
   }, [map, lat, lng, zoom]);
   return null;
 }
+
+/** nonce가 바뀔 때마다 target으로 지도를 옮긴다 (현재 위치 버튼처럼 같은 곳을 다시 눌러도 이동) */
+export function MapFlyTo({ target, zoom, nonce }: { target: { lat: number; lng: number } | null; zoom: number; nonce: number }) {
+  const map = useBaseMap();
+  const targetRef = useRef(target);
+  targetRef.current = target;
+  useEffect(() => {
+    const t = targetRef.current;
+    if (!map || !nonce || !t) return;
+    map.easeTo({ center: [t.lng, t.lat], zoom: Math.max(map.getZoom(), zoom) });
+  }, [map, nonce, zoom]);
+  return null;
+}

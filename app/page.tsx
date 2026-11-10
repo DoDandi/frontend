@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import BandLegend from '@/components/BandLegend';
-import BaseMap, { MapFocus } from '@/components/BaseMap';
+import BaseMap, { MapFlyTo, MapFocus } from '@/components/BaseMap';
+import HeatFab from '@/components/HeatFab';
 import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer';
 import FilterChips from '@/components/FilterChips';
 import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
@@ -25,6 +26,8 @@ import {
   GROUP_LABEL,
   POLL_MS,
   ZONE_FOCUS_ZOOM,
+  LOCATE_ZOOM,
+  LOCATE_MAX_FROM_CENTER_M,
   ZONE_ZOOM_THRESHOLD,
   type Group,
 } from '@/lib/constants';
@@ -74,6 +77,9 @@ export default function Home() {
   const [listOpen, setListOpen] = useState(false);
   const [offSite, setOffSite] = useState<OffSite | null>(null);
   const [geoCard, setGeoCard] = useState(false);
+  // 현재 위치로 지도 옮기기: 값이 바뀔 때마다 이동 (처음 위치를 받았을 때 한 번 + ◎ 버튼)
+  const [locateNonce, setLocateNonce] = useState(0);
+  const firstFix = useRef(true);
   // 하단 요약 시트: 처음엔 한 줄로 접어 두고 누르면 펼친다
   const [summaryOpen, setSummaryOpen] = useState(false);
   // 위치 권한 카드는 지도를 가리지 않게 잠시 뒤 스스로 닫는다
@@ -91,6 +97,11 @@ export default function Home() {
         const f = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
         fixRef.current = f;
         setFix(f);
+        // 첫 화면은 현재 위치 기준. 대구 밖(서비스 지역 밖)이면 원도심을 그대로 보여 준다
+        if (firstFix.current) {
+          firstFix.current = false;
+          if (distanceM(f, DEFAULT_CENTER) <= LOCATE_MAX_FROM_CENTER_M) setLocateNonce(n => n + 1);
+        }
       },
       () => {
         fixRef.current = null;
@@ -118,11 +129,16 @@ export default function Home() {
   const visiblePlaces = places?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
   const zone = zones?.find(z => z.id === zoneId);
   const selectedPlace = places?.find(p => p.id === selected) ?? null;
+  // 장소를 누르면 열기 모드: 지도 위 버튼이 ◎ 내 위치 → 🔥 그 장소 열기 올리기로 바뀐다
+  useEffect(() => {
+    if (selected) setChosenId(selected);
+  }, [selected]);
+  const chosenPlace = places?.find(p => p.id === chosenId) ?? null;
   // 현장 인증: 위치 오차 확인 → 장소 종류별 반경 안 후보 → 고른 장소 / 하나뿐인 후보 / 직접 고르기
   const site: SiteState = (() => {
     if (!fix || !places) return { status: 'no-location' };
     if (fix.accuracy > GPS_MAX_ACCURACY_M) return { status: 'locating', accuracyM: Math.round(fix.accuracy) };
-    const candidates = places
+    const candidates = (chosenPlace ? [chosenPlace] : places)
       .map(p => ({ p, site: checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M) }))
       .filter(c => c.site.ok)
       .sort((a, b) => a.site.distanceM - b.site.distanceM);
@@ -141,6 +157,7 @@ export default function Home() {
         setFix(f);
         setOffSite(null);
         setGeoCard(false);
+        setLocateNonce(n => n + 1);
         showToast('위치를 다시 확인했어요');
       },
       () => showToast('위치를 가져오지 못했어요. 브라우저 설정에서 위치 권한을 허용해 주세요'),
@@ -262,6 +279,12 @@ export default function Home() {
             </>
           )}
           <MapFocus target={selectedPlace} zoom={ZONE_FOCUS_ZOOM} />
+          <MapFlyTo target={fix} zoom={LOCATE_ZOOM} nonce={locateNonce} />
+          {fix && !offSite && (
+            <MapOverlay lat={fix.lat} lng={fix.lng} zIndex={400}>
+              <span className="block h-4 w-4 rounded-full border-[3px] border-white bg-[#3B82F6] shadow-[0_0_0_8px_rgba(59,130,246,0.18)]" aria-label="내 위치" />
+            </MapOverlay>
+          )}
         </BaseMap>
 
         <div className="pointer-events-none absolute right-[22px] top-[9px] z-10">
@@ -290,7 +313,27 @@ export default function Home() {
               />
             </div>
           )}
-          {!selected && !course && !outcome && !listOpen && !zone && !offSite && (
+          {!selected && !course && !outcome && !listOpen && !zone && !offSite && !chosenPlace && (
+            // 기본 화면: 불꽃 자리의 버튼이 ◎ 현재 위치로 이동
+            <div className="pointer-events-none flex justify-end pr-[25px]">
+              <div className="pointer-events-auto mb-2.5">
+                <HeatFab locate active label="내 위치" onPress={() => (fixRef.current ? setLocateNonce(n => n + 1) : setGeoCard(true))} />
+              </div>
+            </div>
+          )}
+          {!selected && !course && !outcome && !listOpen && !zone && !offSite && chosenPlace && (
+            <div className="pointer-events-none flex flex-col">
+              <div className="pl-[22px]">
+                <button
+                  type="button"
+                  onClick={() => setChosenId(null)}
+                  className="pointer-events-auto inline-flex h-[30px] items-center gap-1.5 rounded-2xl border border-[#E9E2DA] bg-white px-3 text-[11px] font-bold text-[#282522]"
+                  aria-label="열기 모드 끄기"
+                >
+                  🔥 {chosenPlace.name}
+                  <span className="font-normal text-[#766F69]">✕</span>
+                </button>
+              </div>
             <HeatSession
               site={site}
               fixRef={fixRef}
@@ -308,6 +351,7 @@ export default function Home() {
                 setShowDaefrica(r.tempAfter >= DAEFRICA_TEMP);
               }}
             />
+            </div>
           )}
         {offSite && !outcome ? (
           <OutOfRangeSheet

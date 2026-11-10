@@ -64,6 +64,10 @@ export const ZONE_BASELINE = 20;
 // 확대 레벨(zoom)이 이 값 미만(멀리 봄)이면 구역, 이상(가까이 봄)이면 장소를 그린다
 export const ZONE_ZOOM_THRESHOLD = 14.5;
 // 구역을 누르면 이 레벨로 확대한다
+/** ◎ 현재 위치로 이동할 때 확대 레벨 */
+export const LOCATE_ZOOM = 16;
+/** 첫 화면을 현재 위치로 옮기는 최대 거리 (원도심 중심에서. 대구 밖이면 원도심을 보여 줌) */
+export const LOCATE_MAX_FROM_CENTER_M = 25_000;
 export const ZONE_FOCUS_ZOOM = 15.5;
 
 // 지도 필터 그룹 (11/7 결정: 음식·축제·스포츠·기타). 백엔드가 `group` 필드를 주기 전까지 화면에서 카테고리로 묶는다
