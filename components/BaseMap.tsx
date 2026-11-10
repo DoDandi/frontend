@@ -20,15 +20,19 @@ type Props = {
   children?: ReactNode;
   /** 확대 레벨이 바뀔 때 호출 (컨텍스트에 넣지 않아 오버레이가 다시 만들어지지 않는다) */
   onZoomChange?: (zoom: number) => void;
+  /** 지도가 멈출 때마다 화면 범위(서,남,동,북)와 확대 레벨 */
+  onViewChange?: (view: { bounds: [number, number, number, number]; zoom: number }) => void;
 };
 
-export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, className, children, onZoomChange }: Props) {
+export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, className, children, onZoomChange, onViewChange }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MLMap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const onZoomChangeRef = useRef(onZoomChange);
+  const onViewChangeRef = useRef(onViewChange);
   useEffect(() => {
     onZoomChangeRef.current = onZoomChange;
+    onViewChangeRef.current = onViewChange;
   });
 
   useEffect(() => {
@@ -46,7 +50,15 @@ export default function BaseMap({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, 
     });
     m.touchZoomRotate.disableRotation();
     m.on('zoomend', () => onZoomChangeRef.current?.(m.getZoom()));
-    m.on('load', () => setMap(m));
+    const reportView = () => {
+      const b = m.getBounds();
+      onViewChangeRef.current?.({ bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()], zoom: m.getZoom() });
+    };
+    m.on('moveend', reportView);
+    m.on('load', () => {
+      setMap(m);
+      reportView();
+    });
     m.on('error', e => {
       // 타일 하나 실패는 무시하고, 스타일 자체를 못 불러온 경우만 알린다
       if (!m.isStyleLoaded()) setError('지도를 불러오지 못했어요. 네트워크를 확인해 주세요.');
