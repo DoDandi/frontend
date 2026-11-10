@@ -1,11 +1,9 @@
 @import "tailwindcss";
-/* 기기마다 다른 시스템 글꼴 대신 Pretendard로 통일 (쓰는 글자만 나눠 받는 dynamic subset) */
-@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 body {
   background: #f8fafc;
   color: #0f172a;
-  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-family: var(--font-noto), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   overscroll-behavior: none;
 }
 
