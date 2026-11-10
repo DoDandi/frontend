@@ -14,6 +14,7 @@ import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/O
 import { MapOverlay, PlaceMarkers } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import ShopDots, { shopId, type Shop } from '@/components/ShopDots';
+import ShopSheet, { type ShopItem } from '@/components/ShopSheet';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet, { SheetPeek } from '@/components/Sheet';
 import StateCard from '@/components/StateCard';
@@ -69,9 +70,15 @@ function getPosition(): Promise<LatLng> {
 export default function Home() {
   const [group, setGroup] = useState<Group | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // 누른 주변 가게(아직 열기 없음). 지도를 옮겨 목록에서 빠져도 시트는 유지하려고 객체로 둔다
+  const [shopSel, setShopSel] = useState<ShopItem | null>(null);
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [course, setCourse] = useState<{ origin: LatLng; data: Course } | null>(null);
+  // 장소·구역·코스를 열면 가게 시트는 닫는다 (시트는 하나만)
+  useEffect(() => {
+    if (selected || zoneId || course) setShopSel(null);
+  }, [selected, zoneId, course]);
   const [toast, setToast] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [fix, setFix] = useState<Fix | null>(null);
@@ -314,10 +321,14 @@ export default function Home() {
           {showShops && viewShops && (
             <ShopDots
               shops={viewShops}
-              selectedId={chosenId}
+              selectedId={shopSel?.id ?? chosenId}
               onSelect={id => {
+                const s = shops.get(id);
+                if (!s) return;
                 setCourse(null);
-                chooseForHeat(id);
+                setSelected(null);
+                setZoneId(null);
+                setShopSel({ id, name: s.name, category: s.category as ShopItem['category'], lat: s.lat, lng: s.lng });
               }}
             />
           )}
@@ -379,7 +390,7 @@ export default function Home() {
               />
             </div>
           )}
-          {!selected && !course && !outcome && !listOpen && !zone && !offSite && !chosenPlace && (
+          {!selected && !shopSel && !course && !outcome && !listOpen && !zone && !offSite && !chosenPlace && (
             // 기본 화면: 불꽃 자리의 버튼이 ◎ 현재 위치로 이동
             <div className="pointer-events-none flex justify-end pr-[25px]">
               <div className="pointer-events-auto mb-2.5">
@@ -388,7 +399,7 @@ export default function Home() {
             </div>
           )}
           {/* 반경 밖 시트가 열려 있어도 '현장 밖' 불꽃 버튼은 시트 위에 남긴다 (SCREEN 20) */}
-          {!selected && !course && !outcome && !listOpen && !zone && chosenPlace && (
+          {!selected && !shopSel && !course && !outcome && !listOpen && !zone && chosenPlace && (
             <div className="pointer-events-none flex flex-col">
               <div className={`pl-[22px] ${offSite ? 'hidden' : ''}`}>
                 <button
@@ -442,6 +453,17 @@ export default function Home() {
               setSelected(id);
             }}
             onClose={() => setOutcome(null)}
+          />
+        ) : shopSel ? (
+          <ShopSheet
+            shop={shopSel}
+            distanceM={fix ? Math.round(distanceM(fix, shopSel)) : null}
+            onClose={() => setShopSel(null)}
+            onHeat={id => {
+              // 시트를 닫고 지도 위 불꽃 버튼으로 이 가게의 열기를 올린다 (장소 시트와 같은 흐름)
+              setShopSel(null);
+              chooseForHeat(id);
+            }}
           />
         ) : selected ? (
           <PlaceSheet

@@ -47,16 +47,33 @@ export function BandChip({ label, bg, fg }: { label: string; bg: string; fg: str
 }
 
 /** 접힌 하단 시트: 손잡이 + 한 줄. 누르면 onOpen으로 펼친다 */
+/** 접힌 시트를 이만큼 위로 밀면 펼친다 (px) */
+const PEEK_SWIPE_PX = 24;
+
+/** 접힌 시트: 누르거나 위로 살짝 밀면 펼친다. 탭 바·브라우저 하단 바와 붙지 않게 위아래 여백을 넉넉히 둔다 */
 export function SheetPeek({ title, right, onOpen }: { title: ReactNode; right?: ReactNode; onOpen: () => void }) {
+  const startY = useRef<number | null>(null);
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="pointer-events-auto block w-full rounded-t-[20px] bg-white px-[22px] pb-3 pt-[9px] text-left shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+      onPointerDown={e => {
+        startY.current = e.clientY;
+      }}
+      onPointerMove={e => {
+        if (startY.current != null && startY.current - e.clientY > PEEK_SWIPE_PX) {
+          startY.current = null;
+          onOpen();
+        }
+      }}
+      onPointerUp={() => {
+        startY.current = null;
+      }}
+      className="pointer-events-auto block w-full touch-none rounded-t-[20px] bg-white px-[22px] pb-5 pt-3 text-left shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       aria-label="시트 펼치기"
       aria-expanded={false}
     >
-      <span className="mx-auto mb-2 block h-1 w-11 rounded-full bg-[#E9E2DA]" />
+      <span className="mx-auto mb-3 block h-1 w-11 rounded-full bg-[#E9E2DA]" />
       <span className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-[#282522]">{title}</span>
         {right}
