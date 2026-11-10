@@ -1,5 +1,6 @@
 'use client';
 
+import { ChatCircle, PencilSimpleLine } from '@phosphor-icons/react/dist/ssr';
 import { useRef, useState } from 'react';
 import SheetGrip from './SheetGrip';
 import { signInWithKakao } from '@/lib/auth';
@@ -14,8 +15,8 @@ export default function LoginSheet({ next, onClose }: { next: string; onClose: (
       <button type="button" className="flex-1" onClick={onClose} aria-label="닫기" />
       <div ref={sheetRef} className="sheet-in relative rounded-t-3xl bg-white px-[22px] pb-[max(env(safe-area-inset-bottom),16px)] pt-2.5">
         <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
-        <p className="mt-4 text-[32px] leading-none" aria-hidden="true">
-          ✍️
+        <p className="mt-4" aria-hidden="true">
+          <PencilSimpleLine size={32} className="text-[#B7392D]" aria-hidden="true" />
         </p>
         <p className="mt-3 text-xl font-bold text-[#282522]">글을 남기려면 로그인이 필요해요</p>
         <p className="mt-2 text-[13px] leading-5 text-[#766F69]">
@@ -35,9 +36,10 @@ export default function LoginSheet({ next, onClose }: { next: string; onClose: (
             setError(await signInWithKakao(next));
             setBusy(false);
           }}
-          className="mt-4 h-[52px] w-full rounded-xl bg-[#FEE500] text-[15px] font-bold text-[#282522] disabled:opacity-60"
+          className="mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] text-[15px] font-bold text-[#282522] disabled:opacity-60"
         >
-          💬 카카오로 3초 만에 시작하기
+          <ChatCircle size={20} weight="fill" aria-hidden="true" />
+          카카오로 시작하기
         </button>
         {error && <p className="mt-2 text-center text-xs font-medium text-[#B7392D]">{error}</p>}
         <button type="button" onClick={onClose} className="mt-1 h-11 w-full text-sm text-[#766F69]">

@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- 사용자 업로드 사진(Supabase Storage)이라 next/image 도메인 설정 없이 그대로 쓴다 */
+import { DotsThree, ImageSquare, User } from '@phosphor-icons/react/dist/ssr';
 import { avatarColor, timeAgo, type Post } from '@/lib/posts';
 
 /** 피드 게시글 카드 (피그마 SCREEN 07 · 피드 / 게시글) */
@@ -14,7 +15,7 @@ export default function PostCard({ post, onMore }: { post: Post; /** 내 글이�
             style={{ backgroundColor: avatarColor(post.author.nickname) }}
             aria-hidden="true"
           >
-            ◯
+            <User size={18} aria-hidden="true" />
           </span>
         )}
         <div className="min-w-0 flex-1">
@@ -28,7 +29,7 @@ export default function PostCard({ post, onMore }: { post: Post; /** 내 글이�
         </div>
         {onMore && (
           <button type="button" onClick={onMore} className="-mr-1 shrink-0 px-2 py-1 text-lg font-bold leading-none tracking-widest text-[#766F69]" aria-label="내 글 관리">
-            ⋯
+            <DotsThree size={22} weight="bold" aria-hidden="true" />
           </button>
         )}
       </header>
@@ -38,7 +39,7 @@ export default function PostCard({ post, onMore }: { post: Post; /** 내 글이�
       ) : (
         <div className="mt-3 flex aspect-[324/171] w-full flex-col items-center justify-center rounded-xl bg-[#F6F4F1] text-[#766F69]">
           <span className="text-[32px] leading-[46px]" aria-hidden="true">
-            ▧
+            <ImageSquare size={32} aria-hidden="true" />
           </span>
           <span className="mt-4 text-xs font-medium leading-[17px]">현장의 사진</span>
         </div>

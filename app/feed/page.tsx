@@ -1,5 +1,6 @@
 'use client';
 
+import { ImagesSquare, MagnifyingGlass, WarningCircle, X } from '@phosphor-icons/react/dist/ssr';
 import { useState } from 'react';
 import useSWR from 'swr';
 import DeletePostSheet from '@/components/DeletePostSheet';
@@ -56,7 +57,7 @@ export default function FeedPage() {
             className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6F4F1] text-[21px] font-medium leading-[30px]"
             aria-label={searching ? '검색 닫기' : '게시글 검색'}
           >
-            {searching ? '×' : '⌕'}
+            {searching ? <X size={20} weight="bold" aria-hidden="true" /> : <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />}
           </button>
         </div>
         {searching && (
@@ -85,12 +86,12 @@ export default function FeedPage() {
         {isLoading || (!data && !error) ? (
           <p className="py-16 text-center text-sm text-[#766F69]">불러오는 중…</p>
         ) : error ? (
-          <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => mutate() }} />
+          <StateCard tone="error" icon={<WarningCircle size={22} />} title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => mutate() }} />
         ) : posts && posts.length === 0 ? (
           term ? (
-            <StateCard icon="🔍" title={`‘${q.trim()}’에 맞는 게시글이 없어요`} body="다른 장소 이름이나 낱말로 찾아 보세요" />
+            <StateCard icon={<MagnifyingGlass size={22} />} title={`‘${q.trim()}’에 맞는 게시글이 없어요`} body="다른 장소 이름이나 낱말로 찾아 보세요" />
           ) : (
-            <StateCard icon="🍃" title="아직 남겨진 순간이 없어요" body="지도에서 장소를 골라 첫 기록을 남겨 보세요" action={{ label: '지도 보기', href: '/' }} />
+            <StateCard icon={<ImagesSquare size={22} />} title="아직 남겨진 순간이 없어요" body="지도에서 장소를 골라 첫 기록을 남겨 보세요" action={{ label: '지도 보기', href: '/' }} />
           )
         ) : (
           <div className="flex flex-col gap-[15px]">

@@ -1,6 +1,7 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element -- 고른 사진 미리보기(blob URL) */
+import { ArrowLeft, Camera, MapPin, Warning } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -92,7 +93,7 @@ function NewPost() {
     <main className="flex min-h-dvh w-full flex-col bg-white px-[21px] pb-[max(env(safe-area-inset-bottom),19px)] pt-[max(env(safe-area-inset-top),49px)] text-[#282522]">
       <header className="-ml-1 flex h-[42px] items-center gap-1.5">
         <button type="button" onClick={() => router.back()} className="w-7 text-2xl leading-[35px]" aria-label="뒤로">
-          ←
+          <ArrowLeft size={24} aria-hidden="true" />
         </button>
         <h1 className="text-[22px] font-bold leading-8">현장 기록 남기기</h1>
       </header>
@@ -109,7 +110,8 @@ function NewPost() {
             </p>
           ) : (
             <>
-              <p className="truncate text-[15px] font-bold leading-[22px]">📍 {place?.name ?? '불러오는 중…'}</p>
+              <p className="truncate text-[15px] font-bold leading-[22px]"><MapPin size={16} weight="fill" className="mr-1 inline-block align-[-2px] text-[#B7392D]" aria-hidden="true" />
+                {place?.name ?? '불러오는 중…'}</p>
               <p className="text-[11px] leading-4 text-[#766F69]">열기 지도에서 선택된 장소</p>
             </>
           )}
@@ -133,7 +135,7 @@ function NewPost() {
           ) : (
             <>
               <span className="mt-[22px] text-[32px] leading-[46px]" aria-hidden="true">
-                ▧
+                <Camera size={32} aria-hidden="true" />
               </span>
               <span className="mt-[45px] text-xs font-medium leading-[17px]">+ 사진 추가하기</span>
             </>
@@ -163,7 +165,7 @@ function NewPost() {
           <div className="mb-3">
             <StateCard
               tone="warn"
-              icon="⚠️"
+              icon={<Warning size={22} />}
               title="사진을 올리지 못했어요"
               body="네트워크를 확인하고 다시 시도해 주세요. 쓴 글은 그대로 남아 있어요"
               action={{ label: '다시 시도', onClick: submit }}

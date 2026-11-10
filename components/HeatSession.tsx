@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, Fire, Hourglass } from '@phosphor-icons/react/dist/ssr';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { COOLDOWN_MIN, GPS_MAX_ACCURACY_M, MAX_TAPS, TAP_DURATION_SEC } from '@/lib/constants';
 import { getDeviceId } from '@/lib/device';
@@ -250,7 +251,10 @@ export default function HeatSession({
               ))}
             </div>
           ) : shownPlace && (busy || site.status === 'ok') ? (
-            <span className={chipCls}>✓ {shownPlace.name} · 현장 인증</span>
+            <span className={chipCls}>
+              <Check size={14} weight="bold" className="mr-1" aria-hidden="true" />
+              {shownPlace.name} 현장 인증
+            </span>
           ) : site.status === 'locating' ? (
             <span className={chipCls}>위치 확인 중… (오차 {site.accuracyM}m · {GPS_MAX_ACCURACY_M}m 이하 필요)</span>
           ) : null}
@@ -260,7 +264,10 @@ export default function HeatSession({
             <div className="w-[231px] rounded-[15px] border border-[#E9E2DA] bg-white px-[15px] pb-3 pt-[5px]" aria-live="polite">
               <div className="flex items-center justify-between">
                 <span className="text-[26px] font-bold leading-9 tabular-nums text-[#282522]">00:{String(Math.ceil(remaining)).padStart(2, '0')}</span>
-                <span className="text-[17px] font-bold leading-6 tabular-nums text-[#E64B3B]">🔥 {taps}회</span>
+                <span className="flex items-center gap-1 text-[17px] font-bold leading-6 tabular-nums text-[#E64B3B]">
+                  <Fire size={18} weight="fill" className="inline-block shrink-0" aria-hidden="true" />
+                  {taps}회
+                </span>
               </div>
               <p className="mt-1 text-xs leading-[17px] text-[#766F69]">
                 {phase.kind === 'sending' ? '열기를 보내는 중…' : taps >= MAX_TAPS ? '최대로 눌렀어요!' : '반응을 누르면 불꽃이 올라가요!'}
@@ -269,7 +276,10 @@ export default function HeatSession({
           )}
           {cooldownCard && place && cooldownLeft > 0 && (
             <div className="pointer-events-auto w-[260px] max-w-full rounded-[15px] border border-[#E9E2DA] bg-white px-4 pb-3 pt-3" aria-live="polite">
-              <p className="text-[15px] font-bold text-[#282522]">⏳ 잠시 쉬어 가요</p>
+              <p className="flex items-center gap-1.5 text-[15px] font-bold text-[#282522]">
+                <Hourglass size={18} aria-hidden="true" />
+                잠시 쉬어 가요
+              </p>
               <p className="mt-1.5 text-[11px] leading-4 text-[#766F69]">
                 {place.name}에는 방금 열기를 올렸어요.
                 <br />

@@ -1,6 +1,7 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element -- 피그마에서 받은 작은 SVG를 그대로 쓴다 */
+import { Camera, Fire } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import SheetGrip from './SheetGrip';
@@ -41,7 +42,10 @@ export function HeatResultSheet({
     <div ref={sheetRef} className="sheet-in pointer-events-auto relative flex max-h-[75vh] w-full flex-col gap-[14px] overflow-y-auto rounded-t-3xl bg-white px-[22px] pb-[26px] pt-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
       <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
       <div className="flex items-center gap-2">
-        <p className="flex-1 text-xl font-bold text-[#282522]">🔥 열기를 올렸어요!</p>
+        <p className="flex flex-1 items-center gap-1.5 text-xl font-bold text-[#282522]">
+          <Fire size={20} weight="fill" className="inline-block shrink-0 text-[#D94B35]" aria-hidden="true" />
+          열기를 올렸어요!
+        </p>
         <span className="rounded-[14px] bg-[#FCE8E1] px-2.5 py-[5px] text-[11px] font-bold text-[#B33E29]">{BAND_LABEL[b]}</span>
       </div>
       <div className="flex items-center gap-[14px]">
@@ -91,7 +95,7 @@ export function HeatResultSheet({
                 </span>
               </span>
               <span className="shrink-0 rounded-[14px] px-2.5 py-[5px] text-[11px] font-bold text-[#282522]" style={{ backgroundColor: BAND_STYLE[sb].color, color: BAND_STYLE[sb].onColor }}>
-                {sb === 'hot' || sb === 'daefrica' ? '🔥 ' : ''}
+                {(sb === 'hot' || sb === 'daefrica') && <Fire size={12} weight="fill" className="inline-block shrink-0 mr-0.5 align-[-1px]" aria-hidden="true" />}
                 {Math.round(s.temp)}° {BAND_LABEL[sb]}
               </span>
               <span className="text-lg font-medium text-[#766F69]" aria-hidden="true">
@@ -104,9 +108,10 @@ export function HeatResultSheet({
       <div className="flex gap-2">
         <Link
           href={`/feed/new?placeId=${place.id}`}
-          className="flex h-[52px] flex-1 items-center justify-center whitespace-pre rounded-xl border border-[#E9E2DA] bg-white px-4 text-sm font-bold text-[#282522]"
+          className="flex h-[52px] flex-1 items-center justify-center gap-1.5 whitespace-pre rounded-xl border border-[#E9E2DA] bg-white px-4 text-sm font-bold text-[#282522]"
         >
-          {'📷  사진 남기기'}
+          <Camera size={18} aria-hidden="true" />
+          기록 남기기
         </Link>
         <button type="button" onClick={onClose} className="h-[52px] flex-1 rounded-xl bg-[#B33E29] px-4 text-[15px] font-bold text-white">
           확인

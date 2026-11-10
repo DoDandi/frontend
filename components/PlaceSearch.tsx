@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_LABEL } from '@/lib/constants';
 import { BAND_STYLE } from './HeatMarker';
@@ -22,7 +23,7 @@ export default function PlaceSearch({ places, zoneName, onSelect, onClose }: Pro
     <div className="absolute inset-0 z-40 flex flex-col bg-white">
       <div className="flex items-center gap-2 px-3 pb-3 pt-[max(env(safe-area-inset-top),14px)]">
         <button type="button" onClick={onClose} className="p-2 text-2xl leading-none text-gray-700" aria-label="검색 닫기">
-          ←
+          <ArrowLeft size={24} aria-hidden="true" />
         </button>
         <input
           ref={input}

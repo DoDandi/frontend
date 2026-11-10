@@ -1,5 +1,7 @@
 'use client';
 
+import { Crosshair } from '@phosphor-icons/react/dist/ssr';
+
 /* eslint-disable @next/next/no-img-element -- 피그마에서 받은 작은 SVG를 그대로 쓴다 */
 
 /**
@@ -41,7 +43,7 @@ export default function HeatFab({
       {locate ? (
         <>
           <span className="absolute left-1 top-0 flex h-[68px] w-[68px] items-center justify-center rounded-full border border-[#E9E2DA] bg-white text-[30px] leading-none text-[#B7392D] shadow-[0_4px_10px_rgba(0,0,0,0.12)]">
-            ◎
+            <Crosshair size={30} weight="bold" aria-hidden="true" />
           </span>
           <span className="absolute left-2 top-[65px] flex h-[22px] w-[60px] items-center justify-center rounded-[11px] border-[0.75px] border-[#E9E2DA] bg-white text-[11px] font-bold leading-[15px] text-[#282522]">
             {label}

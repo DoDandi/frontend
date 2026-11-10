@@ -1,5 +1,6 @@
 'use client';
 
+import { Fire, ImageSquare } from '@phosphor-icons/react/dist/ssr';
 import { useRef, useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
@@ -100,7 +101,7 @@ function PlaceListRow({ p, zoneName, onSelect }: { p: ZonePlace; zoneName?: stri
           <img src={p.photoUrl} alt="" className="h-[76px] w-[76px] shrink-0 rounded-xl bg-[#F6F4F1] object-cover" />
         ) : (
           <span className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-xl bg-[#F6F4F1] text-[23px] font-medium text-[#A99F96]" aria-hidden="true">
-            ▧
+            <ImageSquare size={24} aria-hidden="true" />
           </span>
         )}
         <span className="flex min-w-0 flex-1 flex-col pt-0.5">
@@ -116,7 +117,7 @@ function PlaceListRow({ p, zoneName, onSelect }: { p: ZonePlace; zoneName?: stri
             className="flex h-[30px] min-w-16 items-center justify-center rounded-[15px] px-2 text-xs font-bold text-[#B7392D] tabular-nums"
             style={{ backgroundColor: `${BAND_STYLE[p.band].color}${BADGE_ALPHA[p.band]}` }}
           >
-            {p.temp >= 20 ? '🔥 ' : ''}
+            {p.temp >= 20 && <Fire size={11} weight="fill" className="inline-block shrink-0 mr-0.5 align-[-1px]" aria-hidden="true" />}
             {Math.round(p.temp)}°
           </span>
           <span className="pr-1.5 text-[22px] font-medium leading-6 text-[#766F69]" aria-hidden="true">

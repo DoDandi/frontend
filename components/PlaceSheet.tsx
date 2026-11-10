@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, Fire } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { CATEGORY_LABEL, POLL_MS, type Category } from '@/lib/constants';
@@ -68,7 +69,7 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
       <div className="flex items-center justify-between gap-2 pr-8 pt-1">
         <h2 className="truncate text-[22px] font-bold leading-8 text-[#282522]">{p.name}</h2>
         <span className="shrink-0 rounded-2xl px-3 py-1.5 text-xs font-bold" style={{ backgroundColor: s.soft, color: s.text }}>
-          {hot ? '🔥 ' : ''}
+          {hot && <Fire size={12} weight="fill" className="inline-block shrink-0 mr-0.5 align-[-1px]" aria-hidden="true" />}
           {BAND_LABEL[p.band]}
         </span>
       </div>
@@ -96,7 +97,7 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
             + 기록 남기기
           </Link>
           <Link href="/feed" className="text-[#766F69]">
-            전체 보기 →
+            전체 보기
           </Link>
         </span>
       </div>
@@ -113,7 +114,9 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold text-[#B7392D]">✓ 현장에서 {HEAT_RADIUS_BY_CATEGORY[p.category]}m 이내일 때</p>
+          <p className="flex items-center gap-1 text-xs font-bold text-[#B7392D]">
+            <Check size={14} weight="bold" aria-hidden="true" />
+            현장에서 {HEAT_RADIUS_BY_CATEGORY[p.category]}m 이내일 때</p>
           <p className="mt-1.5 text-xs text-[#766F69]">우하단 불꽃을 눌러 열기 보내기</p>
         </div>
         <HeatFab active label="열기" onPress={() => onHeat(p.id)} />
