@@ -1,5 +1,6 @@
 'use client';
 
+import { CaretUp, X } from '@phosphor-icons/react/dist/ssr';
 import { useRef, type ReactNode } from 'react';
 import SheetGrip from './SheetGrip';
 
@@ -27,8 +28,8 @@ export default function Sheet({
       <SheetGrip sheetRef={ref} onDismiss={onCollapse ?? onClose} label={onCollapse ? '시트 접기' : '시트 닫기'} />
       <div className="mb-2" />
       {onClose && (
-        <button type="button" onClick={onClose} className="absolute right-3 top-2 z-10 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
-          ×
+        <button type="button" onClick={onClose} className="absolute right-2 top-1.5 z-10 p-2.5 text-[#766F69]" aria-label="닫기">
+          <X size={20} aria-hidden="true" />
         </button>
       )}
       {children}
@@ -59,9 +60,7 @@ export function SheetPeek({ title, right, onOpen }: { title: ReactNode; right?: 
       <span className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-[#282522]">{title}</span>
         {right}
-        <span className="shrink-0 text-xs text-[#766F69]" aria-hidden="true">
-          ⌃
-        </span>
+        <CaretUp size={16} className="shrink-0 text-[#766F69]" aria-hidden="true" />
       </span>
     </button>
   );

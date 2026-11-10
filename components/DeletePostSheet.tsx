@@ -1,5 +1,6 @@
 'use client';
 
+import { Trash } from '@phosphor-icons/react/dist/ssr';
 import { useRef, useState } from 'react';
 import SheetGrip from './SheetGrip';
 import { authHeaders } from '@/lib/auth';
@@ -33,7 +34,7 @@ export default function DeletePostSheet({ post, onClose, onDeleted }: { post: Po
           {post.placeName} · {timeAgo(post.createdAt)}에 올린 글
         </p>
         <button type="button" onClick={remove} disabled={busy} className="mt-3 flex h-12 w-full items-center gap-3 text-[15px] font-bold text-[#B33E29] disabled:opacity-50">
-          <span aria-hidden="true">🗑️</span>
+          <Trash size={20} aria-hidden="true" />
           {busy ? '지우는 중…' : '게시물 삭제'}
         </button>
         <p className="border-t border-[#E9E2DA] pt-3 text-[11px] text-[#766F69]">삭제하면 사진과 글이 모두 사라지고 되돌릴 수 없어요</p>

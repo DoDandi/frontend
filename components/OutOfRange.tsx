@@ -1,5 +1,6 @@
 'use client';
 
+import { Crosshair, MapPin, NavigationArrow, X } from '@phosphor-icons/react/dist/ssr';
 import { useEffect, useRef } from 'react';
 import SheetGrip from './SheetGrip';
 import { OVERLAY_BEFORE } from '@/lib/mapStyle';
@@ -75,11 +76,14 @@ export function OutOfRangeSheet({ info, onRecheck, onClose }: { info: OffSite; o
   return (
     <div ref={sheetRef} className="sheet-in pointer-events-auto relative w-full rounded-t-3xl bg-white px-[22px] pb-5 pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
       <SheetGrip sheetRef={sheetRef} onDismiss={onClose} />
-      <button type="button" onClick={onClose} className="absolute right-3 top-2 z-10 p-2 text-xl leading-none text-gray-400" aria-label="닫기">
-        ×
+      <button type="button" onClick={onClose} className="absolute right-2 top-1.5 z-10 p-2.5 text-[#766F69]" aria-label="닫기">
+        <X size={20} aria-hidden="true" />
       </button>
       <div className="mt-4 flex items-center justify-between gap-2 pr-8">
-        <p className="text-lg font-bold text-[#282522]">📍 현장 반경 밖이에요</p>
+        <p className="flex items-center gap-1.5 text-lg font-bold text-[#282522]">
+          <MapPin size={20} weight="fill" className="text-[#B7392D]" aria-hidden="true" />
+          현장 반경 밖이에요
+        </p>
         <span className="shrink-0 rounded-[14px] bg-[#F6F4F1] px-2.5 py-1 text-[11px] font-bold text-[#766F69] tabular-nums">{distanceM}m 떨어짐</span>
       </div>
       <p className="mt-2 text-xs leading-[18px] text-[#766F69]">
@@ -93,11 +97,13 @@ export function OutOfRangeSheet({ info, onRecheck, onClose }: { info: OffSite; o
         <span className="font-bold text-[#B7392D]">{radiusM}m</span>
       </div>
       <div className="mt-5 flex gap-2">
-        <a href={kakaoRoute} target="_blank" rel="noreferrer" className="flex h-[50px] flex-1 items-center justify-center rounded-xl border border-[#E9E2DA] text-sm font-bold text-[#282522]">
-          🧭 길찾기
+        <a href={kakaoRoute} target="_blank" rel="noreferrer" className="flex h-[50px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E9E2DA] text-sm font-bold text-[#282522]">
+          <NavigationArrow size={18} aria-hidden="true" />
+          길찾기
         </a>
-        <button type="button" onClick={onRecheck} className="h-[50px] flex-1 rounded-xl bg-[#B33E29] text-sm font-bold text-white">
-          📍 위치 다시 확인
+        <button type="button" onClick={onRecheck} className="flex h-[50px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#B33E29] text-sm font-bold text-white">
+          <Crosshair size={18} aria-hidden="true" />
+          위치 다시 확인
         </button>
       </div>
     </div>

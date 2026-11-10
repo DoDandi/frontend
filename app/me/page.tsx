@@ -1,6 +1,7 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element -- 카카오 프로필 사진·업로드 사진은 외부 주소라 그대로 쓴다 */
+import { DotsThree, Fire, ImageSquare, Info, LockSimple, PencilSimpleLine, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import DeletePostSheet from '@/components/DeletePostSheet';
@@ -27,7 +28,7 @@ function when(iso: string) {
 }
 
 const errorCard = (retry: () => void) => (
-  <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: retry }} />
+  <StateCard tone="error" icon={<WarningCircle size={22} />} title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: retry }} />
 );
 
 /** MY · 비로그인 (SCREEN 17) / 로그인 (SCREEN 18) */
@@ -48,7 +49,7 @@ export default function MePage() {
       ) : !fp.data ? (
         <p className="py-6 text-center text-sm text-[#766F69]">불러오는 중…</p>
       ) : fp.data.length === 0 ? (
-        <StateCard icon="🍃" title="아직 열기를 올린 곳이 없어요" body="현장에서 첫 번째로 열기를 올려 보세요" action={{ label: '지도 보기', href: '/' }} />
+        <StateCard icon={<Fire size={22} />} title="아직 열기를 올린 곳이 없어요" body="현장에서 첫 번째로 열기를 올려 보세요" action={{ label: '지도 보기', href: '/' }} />
       ) : (
         <ul className="rounded-2xl border border-[#E9E2DA] bg-white px-[14px] py-1">
           {fp.data.map((f, i) => {
@@ -81,7 +82,7 @@ export default function MePage() {
   ) : !mine.data ? (
     <p className="py-6 text-center text-sm text-[#766F69]">불러오는 중…</p>
   ) : mine.data.length === 0 ? (
-    <StateCard icon="🍃" title="아직 남긴 글이 없어요" body="현장에서 열기를 올린 뒤 사진과 글을 남겨 보세요" action={{ label: '피드 보기', href: '/feed' }} />
+    <StateCard icon={<PencilSimpleLine size={22} />} title="아직 남긴 글이 없어요" body="현장에서 열기를 올린 뒤 사진과 글을 남겨 보세요" action={{ label: '피드 보기', href: '/feed' }} />
   ) : (
     <>
       <ul className="flex flex-col gap-3">
@@ -91,7 +92,7 @@ export default function MePage() {
               <img src={p.imageUrl} alt="" className="h-[76px] w-[76px] shrink-0 rounded-xl bg-[#F6F4F1] object-cover" />
             ) : (
               <span className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-xl bg-[#F6F4F1] text-xl text-[#766F69]" aria-hidden="true">
-                ▧
+                <ImageSquare size={24} aria-hidden="true" />
               </span>
             )}
             <div className="min-w-0 flex-1">
@@ -101,12 +102,12 @@ export default function MePage() {
               <p className="mt-1 line-clamp-2 text-sm font-bold text-[#282522]">{p.text}</p>
             </div>
             <button type="button" onClick={() => setManaging(p)} className="-mr-1 -mt-1 h-7 shrink-0 px-2 text-lg font-bold leading-none tracking-widest text-[#766F69]" aria-label="내 글 관리">
-              ⋯
+              <DotsThree size={22} weight="bold" aria-hidden="true" />
             </button>
           </li>
         ))}
       </ul>
-      <p className="text-center text-[11px] text-[#766F69]">⋯ 를 누르면 게시물을 삭제할 수 있어요</p>
+      <p className="text-center text-[11px] text-[#766F69]">오른쪽 위 메뉴에서 게시물을 삭제할 수 있어요</p>
     </>
   );
 
@@ -131,7 +132,6 @@ export default function MePage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[17px] font-bold">{user.nickname}</p>
                 <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[#766F69]">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#FEE500]" aria-hidden="true" />
                   카카오 로그인됨
                 </p>
               </div>
@@ -167,7 +167,8 @@ export default function MePage() {
             <section className="flex flex-col gap-2.5 rounded-2xl bg-[#F6F4F1] p-4">
               <p className="text-base font-bold">로그인하지 않았어요</p>
               <p className="flex items-center gap-1.5 text-xs font-medium text-[#B33E29]">
-                <span className="font-bold">ⓘ</span>발자국은 이 기기에만 저장돼요
+                <Info size={14} weight="bold" aria-hidden="true" />
+                발자국은 이 기기에만 저장돼요
               </p>
               <button
                 type="button"
@@ -180,14 +181,14 @@ export default function MePage() {
             </section>
 
             <div className="flex items-center">
-              <h2 className="flex-1 text-[17px] font-bold">🔥 열기 발자국</h2>
+              <h2 className="flex-1 text-[17px] font-bold">열기 발자국</h2>
               {!!fp.data?.length && <span className="rounded-[14px] bg-[#FCE8E1] px-2.5 py-[5px] text-[11px] font-bold text-[#B33E29]">{fp.data.length}곳</span>}
             </div>
             {footprints}
 
-            <h2 className="text-[17px] font-bold">✍️ 내 게시물</h2>
+            <h2 className="text-[17px] font-bold">내 게시물</h2>
             <div className="flex flex-col items-center gap-1 rounded-2xl bg-[#F6F4F1] p-4 text-center">
-              <p className="text-xl">🔒</p>
+              <LockSimple size={22} className="text-[#766F69]" aria-hidden="true" />
               <p className="text-xs text-[#766F69]">로그인하면 내가 올린 글을 모아 보고 삭제할 수 있어요</p>
             </div>
           </>

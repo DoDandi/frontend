@@ -1,9 +1,11 @@
 @import "tailwindcss";
+/* 기기마다 다른 시스템 글꼴 대신 Pretendard로 통일 (쓰는 글자만 나눠 받는 dynamic subset) */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 body {
   background: #f8fafc;
   color: #0f172a;
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   overscroll-behavior: none;
 }
 
@@ -64,4 +66,17 @@ body {
 .backdrop-in { animation: sheet-fade 200ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .sheet-in { animation: sheet-fade 150ms ease-out; }
+}
+
+/* 누르는 순간 살짝 눌리는 반응 (버튼·링크) */
+button:not(:disabled), a {
+  transition-property: transform;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+button:not(:disabled):active, a:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active, a:active { transform: none; }
 }
