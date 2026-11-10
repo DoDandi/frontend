@@ -114,7 +114,7 @@ type MarkerPlace = { id: string; lat: number; lng: number; name: string; temp: n
 type LabelMode = 'full' | 'dot' | 'mini' | 'hidden';
 
 /** 이 확대 레벨부터는 서늘한 곳도 이름표·온도 원으로 보인다 (그 전엔 작은 점) */
-export const QUIET_LABEL_ZOOM = 17;
+export const QUIET_LABEL_ZOOM = 16;
 
 /** 식당·카페 말고는 길잡이가 되는 곳 (거리·시장·공연장·축제·경기장, 대부분 직접 고른 대표 장소) */
 const LANDMARK = (c?: string) => !!c && c !== 'food' && c !== 'cafe';

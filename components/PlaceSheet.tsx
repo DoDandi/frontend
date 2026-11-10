@@ -111,8 +111,6 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
         </p>
       )}
 
-      {p.todaySchedules && p.todaySchedules.length > 0 && <TodaySchedules list={p.todaySchedules} />}
-
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[15px] font-bold text-[#282522]">현장에 남긴 순간</span>
         <span className="flex gap-3 text-xs">
@@ -134,6 +132,8 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
       ) : (
         <p className="mt-2 rounded-xl bg-[#F6F4F1] px-3.5 py-3 text-xs text-[#766F69]">아직 남긴 사진이 없어요.</p>
       )}
+
+      {p.todaySchedules && p.todaySchedules.length > 0 && <TodaySchedules list={p.todaySchedules} />}
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
