@@ -28,7 +28,7 @@ export default function PostCard({ post, onMore }: { post: Post; /** 내 글이�
           </p>
         </div>
         {onMore && (
-          <button type="button" onClick={onMore} className="-mr-1 shrink-0 px-2 py-1 text-lg font-bold leading-none tracking-widest text-[#766F69]" aria-label="내 글 관리">
+          <button type="button" onClick={onMore} className="-mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-[#766F69]" aria-label="내 글 관리">
             <DotsThree size={22} weight="bold" aria-hidden="true" />
           </button>
         )}

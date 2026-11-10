@@ -213,7 +213,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setSearching(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F6F4F1] text-[19px] font-medium leading-[30px] text-[#282522]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F6F4F1] text-[#282522]"
             aria-label="장소 검색"
           >
             <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />
@@ -266,7 +266,7 @@ export default function Home() {
             <>
               {/* 오른 온도 말풍선 (SCREEN 13) */}
               <MapOverlay lat={outcome.place.lat} lng={outcome.place.lng} zIndex={400}>
-                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#EC5B38] px-2.5 py-[5px] text-xs font-bold text-white">
+                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#C2462B] px-2.5 py-[5px] text-xs font-bold text-white">
                   +{outcome.delta.toFixed(1)}° ↑
                 </span>
               </MapOverlay>
@@ -410,7 +410,9 @@ export default function Home() {
                 </div>
                 <p className="mt-1.5 whitespace-pre text-xs leading-[17px] text-[#766F69]">
                   {hottestZone.vsBaseline != null
-                    ? `${vsText(hottestZone.vsBaseline)}  ·  최근 30분 ${hottestZone.peers30m ?? 0}명 참여`
+                    ? hottestZone.peers30m
+                      ? `${vsText(hottestZone.vsBaseline)} · 최근 30분 ${hottestZone.peers30m}명 참여`
+                      : '아직 조용해요. 첫 열기를 올려 보세요'
                     : `${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
                 </p>
               </button>

@@ -81,12 +81,14 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
 
       <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-2xl bg-[#F6F4F1] px-4 py-3.5">
         <Stat label="현재 열기" value={`${Math.round(p.temp)}°`} color={s.text} />
-        <Stat label="평소 대비" value={vs == null ? '—' : `${vs >= 0 ? '+' : '−'}${Math.abs(Math.round(vs))}°`} color="#EC5B38" />
+        <Stat label="평소 대비" value={vs == null ? '—' : `${vs >= 0 ? '+' : '−'}${Math.abs(Math.round(vs))}°`} color="#C2462B" />
         <Stat label={p.peers30m != null ? '최근 30분' : '지금 참여'} value={`${peers}명`} />
       </div>
       {vs != null && (
         <p className="mt-3 text-xs leading-[17px] text-[#766F69]">
-          평소보다 {Math.abs(Math.round(vs))}° {vs >= 0 ? '뜨거워요' : '조용해요'}. 최근 30분 동안 {peers}명이 열기를 올렸어요.
+          {peers > 0
+            ? `평소보다 ${Math.abs(Math.round(vs))}° ${vs >= 0 ? '뜨거워요' : '조용해요'}. 최근 30분 동안 ${peers}명이 열기를 올렸어요.`
+            : '아직 조용해요. 현장에 있다면 첫 열기를 올려 보세요.'}
         </p>
       )}
 
@@ -117,7 +119,7 @@ export default function PlaceSheet({ placeId, onClose, onHeat }: Props) {
           <p className="flex items-center gap-1 text-xs font-bold text-[#B7392D]">
             <Check size={14} weight="bold" aria-hidden="true" />
             현장에서 {HEAT_RADIUS_BY_CATEGORY[p.category]}m 이내일 때</p>
-          <p className="mt-1.5 text-xs text-[#766F69]">우하단 불꽃을 눌러 열기 보내기</p>
+          <p className="mt-1.5 text-xs text-[#766F69]">불꽃 버튼을 10초 동안 눌러 열기를 올려요</p>
         </div>
         <HeatFab active label="열기" onPress={() => onHeat(p.id)} />
       </div>
