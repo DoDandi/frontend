@@ -1,35 +1,42 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import BandLegend from '@/components/BandLegend';
 import BaseMap, { MapFocus } from '@/components/BaseMap';
 import { CourseCard, CourseOverlay, type Course } from '@/components/CourseLayer';
 import FilterChips from '@/components/FilterChips';
-import HeatFab from '@/components/HeatFab';
-import HeatMarker from '@/components/HeatMarker';
+import { DAEFRICA_TEMP, DaefricaOverlay, HeatResultSheet, type HeatOutcome } from '@/components/HeatResult';
+import HeatSession, { type Fix, type SiteState } from '@/components/HeatSession';
+import { OutOfRangeOverlay, OutOfRangeSheet, type OffSite } from '@/components/OutOfRange';
+import HeatMarker, { MapOverlay } from '@/components/HeatMarker';
 import PlaceSearch from '@/components/PlaceSearch';
 import PlaceSheet, { fetcher } from '@/components/PlaceSheet';
 import Sheet from '@/components/Sheet';
+import StateCard from '@/components/StateCard';
 import TabBar from '@/components/TabBar';
 import { PlaceListSheet, ZoneMarker, ZoneSheet, type ZoneItem, type ZonePlace } from '@/components/ZoneLayer';
 import {
   CATEGORY_GROUP,
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
-  HEAT_RADIUS_M,
+  GPS_MAX_ACCURACY_M,
+  HEAT_RADIUS_BY_CATEGORY,
   GROUP_LABEL,
   POLL_MS,
   ZONE_FOCUS_ZOOM,
   ZONE_ZOOM_THRESHOLD,
   type Group,
 } from '@/lib/constants';
-import { distanceM } from '@/lib/geo';
+import { checkOnSite, distanceM } from '@/lib/geo';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
 
 type PlaceItem = ZonePlace & { lat: number; lng: number };
 
 // 구역 미리보기 한 줄 설명 (평소값 20° 기준). 백엔드가 vsBaseline을 주면 숫자로 바꾼다
+/** V2-01 문구: "평소보다 22° 높아요" */
+const vsText = (v: number) => (Math.round(v) === 0 ? '평소 수준이에요' : `평소보다 ${Math.abs(Math.round(v))}° ${v > 0 ? '높아요' : '낮아요'}`);
+
 const BAND_DESC: Record<Band, string> = {
   mild: '평소보다 조용해요',
   warm: '평소만큼 활기 있어요',
@@ -57,15 +64,37 @@ export default function Home() {
   const [course, setCourse] = useState<{ origin: LatLng; data: Course } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const [myPos, setMyPos] = useState<LatLng | null>(null);
+  const [fix, setFix] = useState<Fix | null>(null);
+  const fixRef = useRef<Fix | null>(null);
+  // 열기를 올릴 장소로 사용자가 고른 곳 (후보가 여러 곳이거나 장소 상세에서 "열기 올리기"를 눌렀을 때)
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  // 열기 올리기 결과 (SCREEN 13 결과 시트, 40° 이상이면 SCREEN 14 대프리카 먼저)
+  const [outcome, setOutcome] = useState<HeatOutcome | null>(null);
+  const [showDaefrica, setShowDaefrica] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
+  const [offSite, setOffSite] = useState<OffSite | null>(null);
+  const [geoCard, setGeoCard] = useState(false);
+  // 위치 권한 카드는 지도를 가리지 않게 잠시 뒤 스스로 닫는다
+  useEffect(() => {
+    if (!geoCard) return;
+    const t = setTimeout(() => setGeoCard(false), 8_000);
+    return () => clearTimeout(t);
+  }, [geoCard]);
 
-  // 열기 올리기 버튼 활성 여부를 위해 위치를 계속 받는다 (권한이 없으면 null → 비활성)
+  // 현장 인증을 위해 위치와 오차를 계속 받는다 (권한이 없으면 null → 비활성)
   useEffect(() => {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      p => setMyPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => setMyPos(null),
-      { enableHighAccuracy: true, maximumAge: 10_000 }
+      p => {
+        const f = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+        fixRef.current = f;
+        setFix(f);
+      },
+      () => {
+        fixRef.current = null;
+        setFix(null);
+      },
+      { enableHighAccuracy: true, maximumAge: 5_000 }
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
@@ -75,25 +104,59 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const { data: places } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
+  const { data: places, error: placesError, mutate: refreshPlaces } = useSWR<PlaceItem[]>('/api/places', fetcher, { refreshInterval: POLL_MS });
   const { data: zones } = useSWR<ZoneItem[]>('/api/zones', fetcher, { refreshInterval: POLL_MS });
+  const { data: outcomeCourse } = useSWR<Course>(
+    outcome ? `/api/course?lat=${outcome.place.lat}&lng=${outcome.place.lng}&limit=2` : null,
+    fetcher
+  );
 
   // 멀리서 보면 구역, 확대하거나 필터를 고르면 장소 마커
   const showZones = !group && zoom < ZONE_ZOOM_THRESHOLD;
   const visiblePlaces = places?.filter(p => !group || CATEGORY_GROUP[p.category] === group);
   const zone = zones?.find(z => z.id === zoneId);
   const selectedPlace = places?.find(p => p.id === selected) ?? null;
-  // 활성 조건: 내 위치에서 가장 가까운 장소가 150m 안 (선택한 장소가 있으면 그 장소 기준)
-  const fabPlaceId = (() => {
-    if (!myPos || !places) return null;
-    const pool = selectedPlace ? [selectedPlace] : places;
-    let best: { id: string; d: number } | null = null;
-    for (const p of pool) {
-      const d = distanceM(myPos, p);
-      if (d <= HEAT_RADIUS_M && (!best || d < best.d)) best = { id: p.id, d };
-    }
-    return best?.id ?? null;
+  // 현장 인증: 위치 오차 확인 → 장소 종류별 반경 안 후보 → 고른 장소 / 하나뿐인 후보 / 직접 고르기
+  const site: SiteState = (() => {
+    if (!fix || !places) return { status: 'no-location' };
+    if (fix.accuracy > GPS_MAX_ACCURACY_M) return { status: 'locating', accuracyM: Math.round(fix.accuracy) };
+    const candidates = places
+      .map(p => ({ p, site: checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M) }))
+      .filter(c => c.site.ok)
+      .sort((a, b) => a.site.distanceM - b.site.distanceM);
+    if (candidates.length === 0) return { status: 'off-site' };
+    const pick = candidates.find(c => c.p.id === selected) ?? candidates.find(c => c.p.id === chosenId) ?? (candidates.length === 1 ? candidates[0] : null);
+    if (pick) return { status: 'ok', place: { id: pick.p.id, name: pick.p.name } };
+    return { status: 'choose', candidates: candidates.map(c => ({ id: c.p.id, name: c.p.name, distanceM: c.site.distanceM })) };
   })();
+  // 반경 밖 안내 대상: 고른 장소, 없으면 가장 가까운 장소 (SCREEN 20)
+  // 위치를 한 번 더 받는다 (반경 밖 시트·위치 권한 카드 공용)
+  const recheckLocation = () =>
+    navigator.geolocation?.getCurrentPosition(
+      pos => {
+        const f = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+        fixRef.current = f;
+        setFix(f);
+        setOffSite(null);
+        setGeoCard(false);
+        showToast('위치를 다시 확인했어요');
+      },
+      () => showToast('위치를 가져오지 못했어요. 브라우저 설정에서 위치 권한을 허용해 주세요'),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
+    );
+  const openOffSite = () => {
+    if (!fix || !places?.length) return;
+    const target =
+      places.find(p => p.id === (selected ?? chosenId)) ?? places.reduce((a, p) => (distanceM(fix, p) < distanceM(fix, a) ? p : a), places[0]);
+    setOffSite({
+      place: { id: target.id, name: target.name, lat: target.lat, lng: target.lng },
+      radiusM: HEAT_RADIUS_BY_CATEGORY[target.category],
+      distanceM: Math.round(distanceM(fix, target)),
+    });
+  };
+  // 쿨다운 중 추천: 지금 인증된 곳을 뺀 가장 뜨거운 곳 (SCREEN 19)
+  const certifiedId = site.status === 'ok' ? site.place.id : null;
+  const suggest = places?.filter(p => p.id !== certifiedId).reduce<PlaceItem | null>((a, p) => (!a || p.temp > a.temp ? p : a), null) ?? null;
   const hottestZone = zones?.reduce<ZoneItem | null>((a, z) => (!a || z.temp > a.temp ? z : a), null);
 
   const showCourse = useCallback(async (from?: LatLng) => {
@@ -140,6 +203,7 @@ export default function Home() {
           onChange={g => {
             setGroup(g);
             setZoneId(null);
+            setListOpen(false); // 필터가 바뀌면 목록 시트가 새로 접힌 채로 열린다
           }}
         />
       </header>
@@ -182,6 +246,18 @@ export default function Home() {
               />
             ))}
           {course && <CourseOverlay origin={course.origin} course={course.data} />}
+          {offSite && fix && <OutOfRangeOverlay info={offSite} me={fix} />}
+          {outcome && (
+            <>
+              {/* 오른 온도 말풍선 (SCREEN 13) */}
+              <MapOverlay lat={outcome.place.lat} lng={outcome.place.lng} zIndex={400}>
+                <span className="block -translate-y-11 whitespace-nowrap rounded-[14px] bg-[#EC5B38] px-2.5 py-[5px] text-xs font-bold text-white">
+                  +{outcome.delta.toFixed(1)}° ↑
+                </span>
+              </MapOverlay>
+              {outcomeCourse && outcomeCourse.stops.length > 0 && <CourseOverlay origin={outcome.place} course={outcomeCourse} padBottom={480} />}
+            </>
+          )}
           <MapFocus target={selectedPlace} zoom={ZONE_FOCUS_ZOOM} />
         </BaseMap>
 
@@ -196,13 +272,73 @@ export default function Home() {
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col">
-          {!selected && !course && (
-            <div className="pointer-events-auto mb-2.5 mr-[25px] self-end">
-              <HeatFab placeId={fabPlaceId} onDisabledClick={() => showToast(myPos ? '장소 150m 안에서만 열기를 올릴 수 있어요' : '위치를 확인할 수 없어요. 위치 권한을 켜 주세요')} />
+          {placesError && !places && (
+            <div className="px-[17px] pb-3">
+              <StateCard tone="error" icon="🔧" title="잠시 문제가 생겼어요" body="잠시 후 다시 시도해 주세요" action={{ label: '새로고침', onClick: () => refreshPlaces() }} />
             </div>
           )}
-        {selected ? (
-          <PlaceSheet placeId={selected} onClose={() => setSelected(null)} onCourseFromHere={showCourse} />
+          {geoCard && !fix && (
+            <div className="px-[17px] pb-3">
+              <StateCard
+                icon="📍"
+                title="위치 권한이 필요해요"
+                body="열기 올리기는 현장 반경 안에서만 할 수 있어요. 지도는 그대로 볼 수 있어요"
+                action={{ label: '위치 다시 확인', onClick: recheckLocation }}
+              />
+            </div>
+          )}
+          {!selected && !course && !outcome && !listOpen && !zone && !offSite && (
+            <HeatSession
+              site={site}
+              fixRef={fixRef}
+              onChoose={setChosenId}
+              onToast={showToast}
+              onOffSite={openOffSite}
+              onNoLocation={() => (fix ? showToast('장소를 불러오는 중이에요') : setGeoCard(true))}
+              suggest={suggest && { id: suggest.id, name: suggest.name, temp: suggest.temp }}
+              onSuggest={id => setSelected(id)}
+              onSent={(r, placeId) => {
+                refreshPlaces();
+                const p = places?.find(x => x.id === placeId);
+                if (!p) return;
+                setOutcome({ place: { id: p.id, name: p.name, lat: p.lat, lng: p.lng }, ...r });
+                setShowDaefrica(r.tempAfter >= DAEFRICA_TEMP);
+              }}
+            />
+          )}
+        {offSite && !outcome ? (
+          <OutOfRangeSheet
+            info={offSite}
+            onClose={() => setOffSite(null)}
+            onRecheck={recheckLocation}
+          />
+        ) : outcome ? (
+          <HeatResultSheet
+            outcome={outcome}
+            course={outcomeCourse}
+            onSelectPlace={id => {
+              setOutcome(null);
+              setSelected(id);
+            }}
+            onClose={() => setOutcome(null)}
+          />
+        ) : selected ? (
+          <PlaceSheet
+            placeId={selected}
+            onClose={() => setSelected(null)}
+            onHeat={id => {
+              // 시트를 닫고 지도 위 불꽃 버튼으로 그 장소의 열기를 올린다
+              setChosenId(id);
+              setSelected(null);
+              const p = places?.find(x => x.id === id);
+              if (!p) return;
+              if (!fix) return setGeoCard(true);
+              const r = checkOnSite(distanceM(fix, p), fix.accuracy, HEAT_RADIUS_BY_CATEGORY[p.category], GPS_MAX_ACCURACY_M);
+              if (r.ok) showToast(`${p.name} 현장 인증! 불꽃 버튼을 눌러 주세요`);
+              else if (r.reason === 'LOW_ACCURACY') showToast(`위치 오차가 커요 (${Math.round(fix.accuracy)}m). 잠시 기다려 주세요`);
+              else showToast(`${p.name} ${HEAT_RADIUS_BY_CATEGORY[p.category]}m 안에서만 올릴 수 있어요 (지금 ${r.distanceM}m)`);
+            }}
+          />
         ) : zone && places ? (
           <ZoneSheet zone={zone} places={places} onClose={() => setZoneId(null)} onSelectPlace={setSelected} />
         ) : course ? (
@@ -214,7 +350,8 @@ export default function Home() {
                 <div className="flex h-8 items-center justify-between">
                   <span className="text-[17px] font-bold leading-[25px] text-[#282522]">지금 뜨거운 곳</span>
                   <span className="flex h-8 min-w-[76px] items-center justify-center rounded-2xl bg-[#FCE8E1] px-2 text-[11px] font-medium leading-4 text-[#B7392D]">
-                    {hottestZone.band === 'hot' || hottestZone.band === 'daefrica' ? '🔥 HOT' : BAND_LABEL[hottestZone.band]}
+                    {hottestZone.band === 'hot' || hottestZone.band === 'daefrica' ? '🔥 ' : ''}
+                    {BAND_LABEL[hottestZone.band]}
                   </span>
                 </div>
                 <div className="mt-[9px] flex h-6 items-center justify-between">
@@ -222,7 +359,9 @@ export default function Home() {
                   <span className="text-sm font-bold leading-5 tabular-nums text-[#B7392D]">열기 {Math.round(hottestZone.temp)}°</span>
                 </div>
                 <p className="mt-1.5 whitespace-pre text-xs leading-[17px] text-[#766F69]">
-                  {`${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
+                  {hottestZone.vsBaseline != null
+                    ? `${vsText(hottestZone.vsBaseline)}  ·  최근 30분 ${hottestZone.peers30m ?? 0}명 참여`
+                    : `${BAND_DESC[hottestZone.band]}  ·  장소 ${hottestZone.placeCount}곳`}
                 </p>
               </button>
               <p className="mt-[11px] border-t border-[#E9E2DA] pt-[11px] text-xs leading-[17px] text-[#766F69]">지도를 확대하면 매장별 열기를 볼 수 있어요</p>
@@ -233,9 +372,16 @@ export default function Home() {
             <PlaceListSheet
               key={group ?? 'all'}
               title={group ? `${GROUP_LABEL[group]} 장소` : '주변 장소'}
-              badge={{ label: `${visiblePlaces.length}곳`, bg: '#FFEDD5', fg: '#9A3412' }}
+              badge={{ label: `${group ? GROUP_LABEL[group] + ' ' : ''}${visiblePlaces.length}곳`, bg: '#FCE8E1', fg: '#B7392D' }}
+              description={group ? `지도에 표시된 ${GROUP_LABEL[group]} 관련 장소` : '지도에 표시된 장소'}
+              origin={fix}
+              zoneName={id => zones?.find(z => z.id === id)?.name ?? null}
               places={visiblePlaces}
-              onSelectPlace={setSelected}
+              onOpenChange={setListOpen}
+              onSelectPlace={id => {
+                setListOpen(false);
+                setSelected(id);
+              }}
             />
           )
         )}
@@ -243,6 +389,8 @@ export default function Home() {
       </div>
 
       <TabBar active="map" />
+
+      {outcome && showDaefrica && <DaefricaOverlay outcome={outcome} onNext={() => setShowDaefrica(false)} />}
 
       {searching && places && (
         <PlaceSearch

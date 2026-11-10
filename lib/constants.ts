@@ -2,14 +2,14 @@
 export const WINDOW_MIN = 30;
 export const SYNC_WINDOW_SEC = 60;
 export const MAX_TAPS = 40;
-export const BASE_TEMP = 20;
+// 11/7 결정: T = 10 + 10 × min(R/B, 3) + E. 평소 수준(R = B)이면 20°
+export const BASE_TEMP = 10;
+export const NORMAL_TEMP = 20; // vsBaseline = 현재 열기 − 20°
 export const TEMP_PER_RATIO = 10;
 export const MAX_RATIO = 3;
 export const EVENT_BONUS = 5;
-export const TREND_BONUS = 3;
 
 // 어뷰징 방지 (5장·7장)
-export const HEAT_RADIUS_M = 150;
 export const COOLDOWN_MIN = 5;
 export const HOURLY_LIMIT = 20;
 export const PEERS_NOW_MIN = 5;
@@ -25,7 +25,7 @@ export const TIMELINE_STEP_MIN = 10;
 
 // 열기 코스 (5장)
 export const COURSE_RADIUS_KM = 1.5;
-export const COURSE_MIN_TEMP = 30;
+export const COURSE_MIN_TEMP = 20; // 11/7 결정: 20° 이상만 추천
 export const COURSE_EXCLUDE_M = 50;
 export const COURSE_DIST_PENALTY = 10; // 온도 − 10 × 거리(km)
 export const COURSE_DEFAULT_LIMIT = 3;
@@ -89,3 +89,17 @@ export const CATEGORY_GROUP: Record<Category, Group> = {
   cheer: 'sports',
   street: 'etc',
 };
+
+// 현장 인증 (11/10 결정, 백엔드 lib/constants.ts와 같은 값). 장소 종류별 반경 + GPS 오차 확인
+export const HEAT_RADIUS_BY_CATEGORY: Record<Category, number> = {
+  food: 30,
+  cafe: 30,
+  market: 80,
+  night_market: 80,
+  street: 80,
+  show: 150,
+  festival: 150,
+  cheer: 300,
+};
+// 폰이 알려 주는 위치 오차(m)가 이보다 크면 인증하지 않는다
+export const GPS_MAX_ACCURACY_M = 30;

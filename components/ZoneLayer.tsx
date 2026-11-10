@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { CATEGORY_LABEL, ZONE_FOCUS_ZOOM, type Category } from '@/lib/constants';
 import { BAND_LABEL, type Band } from '@/lib/temperature';
+import { distanceM } from '@/lib/geo';
 import { BAND_STYLE, MapOverlay } from './HeatMarker';
 import { useBaseMap } from './BaseMap';
 import Sheet, { BandChip } from './Sheet';
@@ -16,10 +17,27 @@ export type ZoneItem = {
   radiusM: number;
   temp: number;
   band: Band;
+  /** 평소(20°) 대비 몇 도 */
+  vsBaseline?: number;
+  /** 최근 30분 참여 기기 수 */
+  peers30m?: number;
   placeCount: number;
 };
 
-export type ZonePlace = { id: string; zoneId: string | null; name: string; category: Category; temp: number; band: Band };
+export type ZonePlace = {
+  id: string;
+  zoneId: string | null;
+  name: string;
+  category: Category;
+  temp: number;
+  band: Band;
+  lat?: number;
+  lng?: number;
+  /** 평소(20°) 대비 몇 도 */
+  vsBaseline?: number;
+  /** 최신 게시물 사진 (목록 썸네일) */
+  photoUrl?: string | null;
+};
 
 /**
  * 피그마 SCREEN 01 구역 원: 뜨거울수록 크고 진하다.
@@ -67,82 +85,160 @@ export function ZoneMarker({ zone, onClick }: { zone: ZoneItem; onClick: () => v
   );
 }
 
-/** 장소 한 줄: 온도 원 + 이름 + 카테고리 */
-function PlaceRow({ p, onSelect }: { p: ZonePlace; onSelect: (id: string) => void }) {
-  const s = BAND_STYLE[p.band];
+/* eslint-disable @next/next/no-img-element -- 사용자 업로드 사진(Supabase Storage) 썸네일 */
+
+const fmtVs = (v: number) => `평소 대비 ${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v))}°`;
+const BADGE_ALPHA: Record<Band, string> = { mild: '29', warm: '29', hot: '45', daefrica: '52' };
+
+/** 펼친 목록 한 줄 (피그마 V2-02-B · Component / 장소 목록 행) */
+function PlaceListRow({ p, zoneName, onSelect }: { p: ZonePlace; zoneName?: string | null; onSelect: (id: string) => void }) {
   return (
     <li>
-      <button type="button" onClick={() => onSelect(p.id)} className="flex w-full items-center gap-3 py-2.5 text-left">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-extrabold tabular-nums"
-          style={{ backgroundColor: s.color, color: s.onColor }}
-        >
-          {Math.round(p.temp)}°
+      <button type="button" onClick={() => onSelect(p.id)} className="relative flex h-[102px] w-full items-start gap-4 border-b border-[#E9E2DA] px-1.5 pt-3 text-left">
+        {p.photoUrl ? (
+          <img src={p.photoUrl} alt="" className="h-[76px] w-[76px] shrink-0 rounded-xl bg-[#F6F4F1] object-cover" />
+        ) : (
+          <span className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-xl bg-[#F6F4F1] text-[23px] font-medium text-[#A99F96]" aria-hidden="true">
+            ▧
+          </span>
+        )}
+        <span className="flex min-w-0 flex-1 flex-col pt-0.5">
+          <span className="truncate text-base font-bold leading-[23px] text-[#282522]">{p.name}</span>
+          <span className="mt-1 truncate text-[11px] leading-4 text-[#766F69]">
+            {CATEGORY_LABEL[p.category]}
+            {zoneName && ` · ${zoneName}`}
+          </span>
+          {p.vsBaseline != null && <span className="mt-2 text-[11px] leading-4 text-[#766F69]">{fmtVs(p.vsBaseline)}</span>}
         </span>
-        <span className="flex-1 truncate text-[15px] font-bold text-gray-900">{p.name}</span>
-        <span className="text-xs text-gray-500">{CATEGORY_LABEL[p.category]}</span>
+        <span className="flex shrink-0 flex-col items-end gap-5 pt-[5px]">
+          <span
+            className="flex h-[30px] min-w-16 items-center justify-center rounded-[15px] px-2 text-xs font-bold text-[#B7392D] tabular-nums"
+            style={{ backgroundColor: `${BAND_STYLE[p.band].color}${BADGE_ALPHA[p.band]}` }}
+          >
+            {p.temp >= 20 ? '🔥 ' : ''}
+            {Math.round(p.temp)}°
+          </span>
+          <span className="pr-1.5 text-[22px] font-medium leading-6 text-[#766F69]" aria-hidden="true">
+            ›
+          </span>
+        </span>
       </button>
     </li>
   );
 }
 
-/** 장소 목록 시트: 뜨거운 순. 접혀 있으면 위 2곳만 보여 준다 */
+/** 장소 목록 시트. 접혀 있으면 위 2곳만, 펼치면 피그마 V2-02-B 목록(정렬·썸네일) */
 export function PlaceListSheet({
   title,
   badge,
   places,
   defaultOpen = false,
+  description,
+  origin,
+  zoneName,
   onClose,
   onSelectPlace,
+  onOpenChange,
   children,
 }: {
   title: string;
   badge?: { label: string; bg: string; fg: string };
   places: ZonePlace[];
   defaultOpen?: boolean;
+  /** 펼친 목록 제목 아래 설명 */
+  description?: string;
+  /** 내 위치 (거리 가까운 순 정렬용) */
+  origin?: { lat: number; lng: number } | null;
+  zoneName?: (zoneId: string | null) => string | null;
   onClose?: () => void;
   onSelectPlace: (id: string) => void;
+  /** 펼침 상태가 바뀔 때 (펼친 동안 지도 위 버튼을 숨기기 위해) */
+  onOpenChange?: (open: boolean) => void;
   children?: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const list = [...places].sort((a, b) => b.temp - a.temp);
+  const [open, setOpenState] = useState(defaultOpen);
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    onOpenChange?.(v);
+  };
+  const [sort, setSort] = useState<'temp' | 'distance'>('temp');
+  const dist = (p: ZonePlace) => (origin && p.lat != null && p.lng != null ? distanceM(origin, { lat: p.lat, lng: p.lng }) : Infinity);
+  const list = [...places].sort((a, b) => (sort === 'distance' ? dist(a) - dist(b) : b.temp - a.temp));
+
+  if (!open) {
+    return (
+      <Sheet onClose={onClose} maxH="55vh">
+        <div className="flex items-center justify-between gap-2 pr-8">
+          <h2 className="truncate text-[15px] font-extrabold text-gray-900">{title}</h2>
+          {badge && <BandChip {...badge} />}
+        </div>
+        {children}
+        {list.length === 0 ? (
+          <p className="py-4 text-center text-sm text-gray-500">아직 열기가 오른 곳이 없어요</p>
+        ) : (
+          <>
+            <div className="mt-2 flex gap-2 text-xs">
+              {list.slice(0, 2).map(p => (
+                <button key={p.id} type="button" onClick={() => onSelectPlace(p.id)} className="min-w-0 flex-1 truncate rounded-lg bg-gray-100 px-2.5 py-2 text-left">
+                  {p.name} {Math.round(p.temp)}°
+                </button>
+              ))}
+            </div>
+            {list.length > 2 && (
+              <button type="button" onClick={() => setOpen(true)} className="mt-2 w-full text-center text-xs font-bold text-[#B4431F]">
+                ↑ 목록 펼쳐 보기
+              </button>
+            )}
+          </>
+        )}
+      </Sheet>
+    );
+  }
+
+  const sortBtn = (key: 'temp' | 'distance', label: string, w: string) => {
+    const on = sort === key;
+    const disabled = key === 'distance' && !origin;
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setSort(key)}
+        className={`h-[34px] ${w} rounded-[17px] border text-[11px] leading-4 disabled:opacity-40 ${on ? 'border-[#B7392D] bg-[#B7392D] font-bold text-white' : 'border-[#E9E2DA] bg-white font-medium text-[#766F69]'}`}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <Sheet onClose={onClose} maxH="55vh">
-      <div className="flex items-center justify-between gap-2 pr-8">
-        <h2 className="truncate text-[15px] font-extrabold text-gray-900">{title}</h2>
-        {badge && <BandChip {...badge} />}
+    <div className="pointer-events-auto relative flex max-h-[78vh] w-full flex-col rounded-t-3xl bg-white px-[22px] pt-[9px] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      <button type="button" onClick={() => (defaultOpen && onClose ? onClose() : setOpen(false))} className="absolute left-1/2 top-0 h-6 w-24 -translate-x-1/2" aria-label="목록 접기">
+        <span className="mx-auto mt-[9px] block h-[5px] w-12 rounded-[3px] bg-[#E9E2DA]" />
+      </button>
+      <div className="mt-[15px] flex items-center justify-between gap-2">
+        <h2 className="truncate text-[22px] font-bold leading-8 text-[#282522]">{title}</h2>
+        {badge && (
+          <span className="flex h-[31px] shrink-0 items-center rounded-2xl bg-[#FCE8E1] px-3 text-[11px] font-bold text-[#B7392D]">{badge.label}</span>
+        )}
       </div>
+      {description && <p className="mt-1.5 text-xs leading-[17px] text-[#766F69]">{description}</p>}
       {children}
+      <div className="mt-3 flex gap-2">
+        {sortBtn('temp', '열기 높은 순', 'w-[116px]')}
+        {sortBtn('distance', '거리 가까운 순', 'w-[122px]')}
+      </div>
+      <div className="mt-2 h-px w-full bg-[#E9E2DA]" />
       {list.length === 0 ? (
-        <p className="py-4 text-center text-sm text-gray-500">아직 열기가 오른 곳이 없어요</p>
-      ) : open ? (
-        <ul className="mt-1 divide-y divide-gray-100">
+        <p className="py-10 text-center text-sm text-[#766F69]">아직 표시할 장소가 없어요</p>
+      ) : (
+        <ul className="min-h-0 flex-1 overflow-y-auto">
           {list.map(p => (
-            <PlaceRow key={p.id} p={p} onSelect={onSelectPlace} />
+            <PlaceListRow key={p.id} p={p} zoneName={zoneName?.(p.zoneId)} onSelect={onSelectPlace} />
           ))}
         </ul>
-      ) : (
-        <>
-          <div className="mt-2 flex gap-2 text-xs">
-            {list.slice(0, 2).map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onSelectPlace(p.id)}
-                className="min-w-0 flex-1 truncate rounded-lg bg-gray-100 px-2.5 py-2 text-left"
-              >
-                {p.name} {Math.round(p.temp)}°
-              </button>
-            ))}
-          </div>
-          {list.length > 2 && (
-            <button type="button" onClick={() => setOpen(true)} className="mt-2 w-full text-center text-xs font-bold text-[#B4431F]">
-              ↑ 목록 펼쳐 보기
-            </button>
-          )}
-        </>
       )}
-    </Sheet>
+      <p className="whitespace-pre py-4 text-xs font-medium leading-[17px] text-[#766F69]">{'매장을 누르면 해당 장소 상세로 이동해요  ›'}</p>
+    </div>
   );
 }
 

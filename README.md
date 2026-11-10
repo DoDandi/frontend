@@ -32,7 +32,7 @@ npm run dev          # http://localhost:3000
 ## 화면
 
 - `/` 지도 홈 (멀리서 보면 구역, 구역을 누르거나 확대하면 장소)
-- `/heat/[placeId]` 열기 올리기
+- 열기 올리기: 지도 위 불꽃 버튼 (현장 인증되면 10초 동안 누르기 + 흔들기)
 - `/me` 내 발자국
 - `/dev` API 테스트용 버튼 페이지
 
@@ -46,5 +46,5 @@ lib/         상수, 기기 ID, 거리·시간 유틸, 온도 단계 (백엔드 
 
 ## 규칙
 
-- `main`에 직접 푸시하지 않고 PR + 리뷰 1명 후 머지
+- 작업 브랜치(`feature/…`) → `develop`으로 PR 후 머지. `main`에는 직접 푸시하지 않고, 최종본만 `develop`에서 PR로 머지한다
 - `lib/constants.ts`, `lib/temperature.ts`, `lib/geo.ts`, `lib/time.ts`는 백엔드와 같은 내용을 복사해 쓰므로, 백엔드에서 바뀌면 같이 맞추기
