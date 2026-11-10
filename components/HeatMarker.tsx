@@ -43,10 +43,13 @@ export function MapOverlay({ lat, lng, zIndex = 1, children }: { lat: number; ln
   return el ? createPortal(children, el) : null;
 }
 
-type Props = { lat: number; lng: number; name: string; temp: number; band: Band; selected?: boolean; compact?: boolean; onClick?: () => void };
+type Props = { lat: number; lng: number; name: string; temp: number; band: Band; selected?: boolean; compact?: boolean; mini?: boolean; onClick?: () => void };
 
-/** 장소 마커: 온도 원 + 장소명 알약. compact면 이름 없이 온도 원만 (이름표가 겹칠 때) */
-export default function HeatMarker({ lat, lng, name, temp, band, selected, compact, onClick }: Props) {
+/**
+ * 장소 마커: 온도 원 + 장소명 알약.
+ * compact: 이름 없이 온도 원만 (이름표가 겹칠 때) / mini: 숫자 없는 작은 점 (멀리서 본 서늘한 곳)
+ */
+export default function HeatMarker({ lat, lng, name, temp, band, selected, compact, mini, onClick }: Props) {
   const s = BAND_STYLE[band];
   const mild = band === 'mild';
   const dotStyle = {
@@ -57,6 +60,16 @@ export default function HeatMarker({ lat, lng, name, temp, band, selected, compa
     fontSize: s.dot >= 34 ? 13 : s.dot >= 30 ? 12 : 11,
     ['--glow' as string]: s.color,
   };
+  if (mini) {
+    return (
+      <MapOverlay lat={lat} lng={lng} zIndex={1}>
+        {/* 보이는 점은 10px, 누르는 영역은 24px */}
+        <button type="button" onClick={onClick} aria-label={`${name} ${Math.round(temp)}도`} className="flex h-6 w-6 items-center justify-center">
+          <span className="block h-2.5 w-2.5 rounded-full border-[1.5px] border-white shadow-[0_0_0_1px_rgba(62,90,106,0.25)]" style={{ backgroundColor: s.color }} />
+        </button>
+      </MapOverlay>
+    );
+  }
   if (compact) {
     return (
       <MapOverlay lat={lat} lng={lng} zIndex={Math.round(temp)}>
@@ -97,25 +110,55 @@ export default function HeatMarker({ lat, lng, name, temp, band, selected, compa
 
 type Box = { x1: number; y1: number; x2: number; y2: number };
 const overlaps = (a: Box, b: Box) => a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2;
-type MarkerPlace = { id: string; lat: number; lng: number; name: string; temp: number; band: Band };
-type LabelMode = 'full' | 'dot' | 'hidden';
+type MarkerPlace = { id: string; lat: number; lng: number; name: string; temp: number; band: Band; category?: string; eventActive?: boolean; photoUrl?: string | null };
+type LabelMode = 'full' | 'dot' | 'mini' | 'hidden';
 
-/** 화면에서 이름표끼리 겹치지 않게 정한다: 고른 장소 → 뜨거운 순으로 이름표를 두고, 겹치면 온도 원만, 원끼리도 거의 겹치면 숨김 */
+/** 이 확대 레벨부터는 서늘한 곳도 이름표·온도 원으로 보인다 (그 전엔 작은 점) */
+export const QUIET_LABEL_ZOOM = 17;
+
+/** 식당·카페 말고는 길잡이가 되는 곳 (거리·시장·공연장·축제·경기장, 대부분 직접 고른 대표 장소) */
+const LANDMARK = (c?: string) => !!c && c !== 'food' && c !== 'cafe';
+
+/** 눈에 띄게 보일 곳: 고른 장소, 열기가 오른 곳(서늘 아님), 행사 중, 사진이 올라온 곳, 길잡이 장소 */
+export const isNotable = (p: MarkerPlace, selectedId: string | null) =>
+  p.id === selectedId || p.band !== 'mild' || !!p.eventActive || !!p.photoUrl || LANDMARK(p.category);
+
+/**
+ * 화면에서 이름표를 정한다.
+ * 눈에 띄는 곳 먼저(그 안에서 뜨거운 순) 이름표를 두고, 겹치면 온도 원, 원끼리도 거의 겹치면 숨김.
+ * 서늘한 곳은 QUIET_LABEL_ZOOM 전까지 숫자 없는 작은 점 (점끼리 겹치면 숨김).
+ */
 export function layoutLabels(
   places: MarkerPlace[],
   selectedId: string | null,
   project: (p: MarkerPlace) => { x: number; y: number },
   textWidth: (name: string) => number,
-  view: { width: number; height: number }
+  view: { width: number; height: number },
+  zoom = QUIET_LABEL_ZOOM
 ): Record<string, LabelMode> {
   const order = [...places].sort(
-    (a, b) => Number(b.id === selectedId) - Number(a.id === selectedId) || b.temp - a.temp || a.name.localeCompare(b.name, 'ko')
+    (a, b) =>
+      Number(b.id === selectedId) - Number(a.id === selectedId) ||
+      Number(b.band !== 'mild') - Number(a.band !== 'mild') ||
+      Number(isNotable(b, selectedId)) - Number(isNotable(a, selectedId)) ||
+      b.temp - a.temp ||
+      a.name.localeCompare(b.name, 'ko')
   );
   const labels: Box[] = [];
   const dots: { x: number; y: number; r: number }[] = [];
   const out: Record<string, LabelMode> = {};
   for (const p of order) {
     const pt = project(p);
+    if (zoom < QUIET_LABEL_ZOOM && !isNotable(p, selectedId)) {
+      // 멀리서 본 서늘한 곳: 작은 점. 다른 마커 중심과 너무 가까우면 숨김
+      if (dots.some(d => Math.hypot(d.x - pt.x, d.y - pt.y) < d.r + 4)) {
+        out[p.id] = 'hidden';
+        continue;
+      }
+      dots.push({ x: pt.x, y: pt.y, r: 5 });
+      out[p.id] = 'mini';
+      continue;
+    }
     const r = BAND_STYLE[p.band].dot / 2;
     // 화면 밖은 계산 없이 원만 (지도를 옮기면 다시 계산)
     if (pt.x < -200 || pt.y < -60 || pt.x > view.width + 200 || pt.y > view.height + 60) {
@@ -165,7 +208,8 @@ export function PlaceMarkers({
           selectedId,
           p => map.project([p.lng, p.lat]),
           name => (ctx ? ctx.measureText(name).width : name.length * 13),
-          { width, height }
+          { width, height },
+          map.getZoom()
         )
       );
     };
@@ -191,6 +235,7 @@ export function PlaceMarkers({
             band={p.band}
             selected={p.id === selectedId}
             compact={mode === 'dot'}
+            mini={mode === 'mini'}
             onClick={() => onSelect(p.id)}
           />
         );
